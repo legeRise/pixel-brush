@@ -97,6 +97,9 @@
   #liveCanvas { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
   
   .status-ok { color: var(--ok); font-weight: bold; }
+  #renderSummary{font-size:11px;color:var(--mut);text-transform:none;letter-spacing:0}
+  .render-error-list{display:flex;flex-direction:column;gap:4px;padding:10px 14px;color:#fca5a5;font:12px/1.4 ui-monospace,monospace}
+  .render-error-list:empty{display:none}
   .status-err { color: var(--bad); font-weight: bold; }
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--mut); }
 /* Studio refresh */
@@ -124,7 +127,7 @@ header{gap:16px;padding:10px 16px;flex-wrap:wrap}header h1{font-size:15px}.toolb
     <div class="card">
       <div class="card-header">
         <span>Source Code</span>
-        <span>Separated by blank lines</span>
+        <span id="renderSummary">Ready · scenes separated by blank lines</span>
       </div>
       <textarea id="src" spellcheck="false"></textarea>
     </div>
@@ -573,8 +576,23 @@ function renderAll() {
     return;
   }
 
+  const summary = document.getElementById('renderSummary');
+  if (summary) summary.textContent = 'Rendering ' + scenes.length + ' scenes…';
+  btnZip.disabled = true; btnSheet.disabled = true;
   btnRender.textContent = '⏳ Rendering...';
   btnRender.disabled = true;
+
+  let failed = 0;
+  const finishRender = () => {
+    btnRender.textContent = '▶ Render All';
+    btnRender.disabled = false;
+    const successful = cachedScenes.filter(Boolean).length;
+    btnZip.disabled = successful === 0;
+    btnSheet.disabled = successful === 0;
+    if (successful > 0) sceneSelect.dispatchEvent(new Event('change'));
+    const summary = document.getElementById('renderSummary');
+    if (summary) summary.textContent = successful + ' / ' + scenes.length + ' scenes rendered' + (failed ? ' · ' + failed + ' failed' : '');
+  };
 
   scenes.forEach((sceneCode, index) => {
     let title = `Scene ${index + 1}`;
@@ -639,18 +657,12 @@ function renderAll() {
         cachedScenes[index] = { title, canvas: canvas.toDataURL('image/png') };
         completed++;
         
-        if (completed === scenes.length) {
-          btnRender.textContent = '▶ Render All';
-          btnRender.disabled = false;
-          btnZip.disabled = false;
-          btnSheet.disabled = false;
-          // Auto-render the first scene in live viewer
-          sceneSelect.dispatchEvent(new Event('change'));
-        }
-
+        if (completed + failed === scenes.length) finishRender();
       } catch (e) {
-        footer.querySelector('.status-text').innerHTML = `<span class="status-err">Crash</span>`;
-        footer.querySelector('.meta-text').textContent = e.message;
+        failed++;
+        footer.querySelector('.status-text').innerHTML = `<span class="status-err">Failed</span>`;
+        footer.querySelector('.meta-text').textContent = e.message || String(e);
+        if (completed + failed === scenes.length) finishRender();
       }
     }, 10 * index);
   });
@@ -679,12 +691,13 @@ btnPlay.addEventListener('click', () => {
 
 // Export Logic
 btnZip.addEventListener('click', async () => {
-  if (cachedScenes.length === 0) return;
+  if (!cachedScenes.some(Boolean)) return;
   btnZip.textContent = '⏳ Zipping...';
   
   const zip = new JSZip();
   for (let i = 0; i < cachedScenes.length; i++) {
     const scene = cachedScenes[i];
+    if (!scene) continue;
     const base64Data = scene.canvas.split(',')[1];
     const safeName = scene.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     zip.file(`scene_${i+1}_${safeName}.png`, base64Data, {base64: true});
@@ -706,7 +719,8 @@ btnSheet.addEventListener('click', () => {
   
   // Create a massive canvas to stitch them together (max 3 per row)
   const cols = 3;
-  const rows = Math.ceil(cachedScenes.length / cols);
+  const validScenes = cachedScenes.filter(Boolean);
+  const rows = Math.ceil(validScenes.length / cols);
   const cellW = 256;
   const cellH = 256;
   const padding = 20;
@@ -721,7 +735,7 @@ btnSheet.addEventListener('click', () => {
   ctx.fillRect(0, 0, sheet.width, sheet.height);
   
   let loaded = 0;
-  cachedScenes.forEach((scene, i) => {
+  validScenes.forEach((scene, i) => {
     const img = new Image();
     img.onload = () => {
       const col = i % cols;
@@ -731,7 +745,7 @@ btnSheet.addEventListener('click', () => {
       ctx.drawImage(img, x, y, cellW, cellH);
       
       loaded++;
-      if (loaded === cachedScenes.length) {
+      if (loaded === validScenes.length) {
         const url = sheet.toDataURL('image/png');
         const a = document.createElement('a');
         a.href = url;
@@ -758,7 +772,11 @@ liveCanvas.addEventListener('mousemove',e=>{const r=liveCanvas.getBoundingClient
 document.getElementById('btnPng').onclick=()=>{const a=document.createElement('a');a.href=liveCanvas.toDataURL('image/png');a.download='pixel-brush-scene.png';a.click()};document.getElementById('btnCopy').onclick=async()=>{try{await navigator.clipboard.writeText(src.value);info.textContent='Script copied'}catch(e){info.textContent='Clipboard access denied'}};
 document.getElementById('btnSourceDownload').onclick=()=>{const u=URL.createObjectURL(new Blob([src.value],{type:'text/plain'})),a=document.createElement('a');a.href=u;a.download='pixel-brush-script.txt';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
 document.getElementById('btnSourceLoad').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='.txt,.pb,.pixelbrush';i.onchange=()=>{const f=i.files&&i.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{src.value=String(rd.result||'');try{localStorage.setItem(key,src.value)}catch(e){}renderAll()};rd.readAsText(f)};i.click()};
-let timer;src.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>{try{localStorage.setItem(key,src.value)}catch(e){}},350)});try{const saved=localStorage.getItem(key);if(saved&&saved!==src.value&&confirm('Restore your previous Pixel Brush script?'))src.value=saved}catch(e){}document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();renderAll()}});sceneSelect.addEventListener('change',()=>setTimeout(zoom,30));setTimeout(zoom,120);
+let timer,liveRenderTimer;
+src.addEventListener('input',()=>{
+  clearTimeout(timer);timer=setTimeout(()=>{try{localStorage.setItem(key,src.value)}catch(e){}},350);
+  clearTimeout(liveRenderTimer);liveRenderTimer=setTimeout(()=>renderAll(),700);
+});try{const saved=localStorage.getItem(key);if(saved&&saved!==src.value&&confirm('Restore your previous Pixel Brush script?'))src.value=saved}catch(e){}document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();renderAll()}});sceneSelect.addEventListener('change',()=>setTimeout(zoom,30));setTimeout(zoom,120);
 })();
 </script></body>
 </html>
