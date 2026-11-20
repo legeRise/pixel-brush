@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pixel Brush Studio</title>
+<title>Stickman Studio</title>
 <!-- JSZip for ZIP export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -153,7 +153,7 @@ textarea::selection{background:#b8864c55}
 <body>
 
 <header>
-  <h1>Pixel Brush</h1>
+  <h1>Stickman</h1>
   <div class="toolbar">
     <div class="tabs">
       <button class="tab active" data-target="viewStoryboard">Storyboard</button>
@@ -171,7 +171,7 @@ textarea::selection{background:#b8864c55}
     <div class="card">
       <div class="card-header">
         <span>Artwork Script</span>
-        <span id="renderSummary">Autosave enabled · blank line separates scenes</span>
+        <span id="renderSummary">One scene per blank-line block · stick figures + painted background</span>
       </div>
       <textarea id="src" spellcheck="false"></textarea>
     </div>
@@ -199,7 +199,7 @@ textarea::selection{background:#b8864c55}
   </div>
 </main>
 
-<!-- The Pixel Brush Engine (Unmodified) -->
+<!-- The Pixel Brush Engine + stickman layer -->
 <script>
 const BAY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5],RET={};
 let W=128,H=128;
@@ -285,6 +285,82 @@ R.forEach((r,dy)=>[...r].forEach((c,dx)=>{if(mp[c]){const X=fl?w-1-dx:dx;cells.p
 const blk=(cx,cy,c)=>{for(let j=0;j<s;j++)for(let i=0;i<s;i++)put(x0+cx*s+i,y0+cy*s+j,c)};
 if(ol){const ed=new Set();for(const[cx,cy]of cells)for(const[ox,oy]of[[1,0],[-1,0],[0,1],[0,-1]]){const k=(cx+ox)+','+(cy+oy);if(!occ.has(k)&&!ed.has(k)){ed.add(k);blk(cx+ox,cy+oy,ol)}}}
 for(const[cx,cy,c]of cells)blk(cx,cy,c)}
+
+/* ---- stickman layer ---------------------------------------------------
+   A figure is 9 pose numbers + position. Poses 1..12 are canonical keys;
+   stickanim blends two of them. Everything is drawn with the same
+   capsules as the rest of the engine, with coverage AA on the edges.   */
+const SPOSE={
+ 1:[0.04,0.09,-0.09,0.10,0.10,0.11,-0.06,0.22,0.30],
+ 2:[0.14,0.40,-0.38,0.15,0.15,-0.40,0.40,0.55,0.55],
+ 3:[0.14,0.10,-0.10,0.30,0.30,-0.10,0.10,0.45,0.45],
+ 4:[0.38,0.80,-0.55,0.85,0.30,-0.95,0.85,1.45,1.45],
+ 5:[0.38,0.20,-0.10,1.10,0.55,-0.40,0.40,1.55,1.55],
+ 6:[0.10,0.70,-0.25,1.70,1.50,2.50,-2.40,0.30,0.30],
+ 7:[0.05,0.12,-0.12,0.12,0.12,2.35,0.15,0.35,0.30],
+ 8:[0.10,0.15,-0.15,0.12,0.12,1.45,-0.10,0.10,0.25],
+ 9:[0.15,0.95,-0.95,1.45,1.45,-0.35,0.35,0.55,0.55],
+ 10:[0.12,0.40,-0.40,0.45,0.45,0.95,-0.55,1.70,1.35],
+ 11:[-0.55,0.55,-0.35,0.40,0.25,1.20,-1.10,0.60,0.55],
+ 12:[0.10,0.25,-0.25,0.20,0.20,-0.55,-0.45,1.30,1.30]
+};
+function stStroke(x1,y1,x2,y2,r1,r2,c,a){
+  const R=Math.max(r1,r2)+1;
+  const xa=Math.max(0,Math.floor(Math.min(x1,x2)-R)), xb=Math.min(W,Math.ceil(Math.max(x1,x2)+R));
+  const ya=Math.max(0,Math.floor(Math.min(y1,y2)-R)), yb=Math.min(H,Math.ceil(Math.max(y1,y2)+R));
+  for(let yy=ya;yy<yb;yy++)for(let xx=xa;xx<xb;xx++){
+    const d=F.cap(xx,yy,x1,y1,x2,y2,r1,r2);
+    if(d<0.9){const v=Math.max(0,Math.min(1,0.6-d))*a; if(v>0.002)put(xx,yy,c,v,'replace')}
+  }
+}
+function stDraw(x,y,s,P,c,flip,a){
+  const lean=P[0],t1=P[1],t2=P[2],b1=P[3],b2=P[4],s1=P[5],s2=P[6],e1=P[7],e2=P[8];
+  const HDR=16*s, TL=33*s, SL=34*s, UA=21*s, FA=20*s, TR=32*s, HD=17*s;
+  const hx=x, hy=y;
+  const cx=x+Math.sin(lean)*TR, cy=y-Math.cos(lean)*TR;
+  const hdx=cx+Math.sin(lean)*HD, hdy=cy-Math.cos(lean)*HD;
+  const sx=cx, sy=cy+3*s;
+  const k1x=hx+Math.sin(t1)*TL, k1y=hy+Math.cos(t1)*TL;
+  const f1x=k1x+Math.sin(t1-b1)*SL, f1y=k1y+Math.cos(t1-b1)*SL;
+  const k2x=hx+Math.sin(t2)*TL, k2y=hy+Math.cos(t2)*TL;
+  const f2x=k2x+Math.sin(t2-b2)*SL, f2y=k2y+Math.cos(t2-b2)*SL;
+  const e1x=sx+Math.sin(s1)*UA, e1y=sy+Math.cos(s1)*UA;
+  const w1x=e1x+Math.sin(s1+e1)*FA, w1y=e1y+Math.cos(s1+e1)*FA;
+  const e2x=sx+Math.sin(s2)*UA, e2y=sy+Math.cos(s2)*UA;
+  const w2x=e2x+Math.sin(s2+e2)*FA, w2y=e2y+Math.cos(s2+e2)*FA;
+  const segs=[
+    [hx,hy,k2x,k2y,3.2*s,3.0*s],
+    [k2x,k2y,f2x,f2y,3.0*s,2.6*s],
+    [sx,sy,e2x,e2y,3.0*s,2.7*s],
+    [e2x,e2y,w2x,w2y,2.7*s,2.5*s],
+    [hx,hy,cx,cy,3.8*s,3.5*s],
+    [sx,sy,e1x,e1y,3.0*s,2.7*s],
+    [e1x,e1y,w1x,w1y,2.7*s,2.5*s],
+    [hx,hy,k1x,k1y,3.2*s,3.0*s],
+    [k1x,k1y,f1x,f1y,3.0*s,2.6*s]
+  ];
+  if(flip)for(const g of segs){g[0]=2*x-g[0];g[2]=2*x-g[2]}
+  for(const g of segs)stStroke(g[0],g[1],g[2],g[3],g[4],g[5],c,a);
+  stStroke(hdx,hdy,hdx,hdy,HDR,HDR,c,a);
+}
+function stick(t){
+  const a=flat(opts(sp(t)));
+  const x=ev(a[1]),y=ev(a[2]),s=ev(a[3]),pi=Math.round(ev(a[4]));
+  const c=col(a[5]);
+  let fl=false;
+  for(const o of a.slice(6))if(/^flip$/i.test(o))fl=true;
+  stDraw(x,y,s,SPOSE[pi]||SPOSE[1],c,fl,SO.a);
+}
+function stickanim(t){
+  const a=flat(opts(sp(t)));
+  const x=ev(a[1]),y=ev(a[2]),s=ev(a[3]),p1=Math.round(ev(a[4])),p2=Math.round(ev(a[5]));
+  const tt=clamp(ev(a[6]),0,1),c=col(a[7]);
+  const A=SPOSE[p1]||SPOSE[1],B=SPOSE[p2]||SPOSE[1];
+  const P=A.map((v,i)=>v+(B[i]-v)*tt);
+  let fl=false;
+  for(const o of a.slice(8))if(/^flip$/i.test(o))fl=true;
+  stDraw(x,y,s,P,c,fl,SO.a);
+}
 function parse(L,i,top){const N=[];while(i<L.length){const[ln,raw]=L[i],t=raw.trim();if(!t){i++;continue}const k=t.split(/\s/)[0].toLowerCase();
 if(k==='end'){if(top){i++;continue}return[N,i+1]}
 if(k==='palette'){i++;while(i<L.length&&/^\s/.test(L[i][1])&&L[i][1].trim()){const tk=L[i][1].trim().split(/\s+/);
@@ -311,6 +387,8 @@ else if(k==='poly')poly(t);
 else if(k==='rows'){const a=sp(t);drawRows(ch,ev(a[1]),ev(a[2]),a.slice(3))}
 else if(k==='sprite'){SPR[t.split(/\s+/)[1]]=ch}
 else if(k==='stamp'){const a=sp(t),r=SPR[a[1]];if(!r)throw Error('unknown sprite "'+a[1]+'"');drawRows(r,ev(a[2]),ev(a[3]),a.slice(4))}
+else if(k==='stick')stick(t);
+else if(k==='stickanim')stickanim(t);
 else if(k==='fn'){const m=t.match(/^fn\s+(\w+)\s*\(([^)]*)\)\s*=\s*(.+)$/i);if(!m)throw Error('bad fn');FN[m[1]]=[m[2].split(',').map(s=>s.trim()).filter(Boolean),compile(m[3])]}
 else if(DEF[k]){const[ps,body]=DEF[k];if(DEPTH>=16)throw Error('recursion depth limit');const args=sp(t.slice(k.length).trim()).map(ev);
 const old=V;V=Object.assign({},old);ps.forEach((p,i)=>V[p]=args[i]);DEPTH++;try{exec(body)}catch(e){if(e!==RET)throw e}finally{DEPTH--;V=old}}
@@ -337,257 +415,82 @@ const liveCanvas = document.getElementById('liveCanvas');
 const sceneSelect = document.getElementById('sceneSelect');
 const btnPlay = document.getElementById('btnPlay');
 
-const demoText = `# ═══ SCENE 1: The Parched Land ═══
-# A brutal, blinding midday sun. The crow rests on a dead branch, exhausted.
-# Focal: the glaring sun top-right. Planes: blazing sky / cracked earth / dead tree.
-seed 201
+const demoText = `# ═══ 1: The Valley ═══
+# wide dusk valley · one small figure on the ridge · sun low right
+seed 501
 SIZE 256 256
 PALETTE
- sky0 #4A5B6C  sky1 #8A9CAC  sky2 #C8C4B0  sky3 #F8E8C0
- sunc #FFFFFF  dim  #FFC880
- earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  crack #1A0E08
- tree0 #0A0604  tree1 #1A120C
- crow0 #0A0C10  crow1 #1A1E24  beak #3A3A40
-# ---- blazing sky -------------------------------------------------------
-paint in 0 0 256 160 with ramp(clamp(y*0.006,0,1),sky0,sky1,sky2,sky3)
-paint in 140 10 100 100 where dist(x,y,190,40)<60 with dim a=(1-dist(x,y,190,40)*0.016)^2 blend=add
-paint in 160 20 60 60 where dist(x,y,190,40)<25 with sunc
-# ---- cracked earth -----------------------------------------------------
-paint in 0 160 256 96 with ramp(clamp((y-160)*0.01,0,1),earth2,earth1,earth0)
-paint in 0 160 256 96 where noise(x*0.05,y*0.1)>0.6 with crack a=0.6
-# ---- dead tree ---------------------------------------------------------
-line 60 160 50 220 tree0 w=12
-line 60 160 40 180 tree0 w=8
-line 50 180 70 170 tree0 w=6
-line 50 210 30 230 tree0 w=6
-# ---- exhausted crow ----------------------------------------------------
-line 55 145 65 155 crow1 w=10
-line 55 145 65 155 crow0 w=6
-plot 50 140 crow0 r=5
-plot 45 142 beak r=2
-line 60 150 75 160 crow0 w=4
-# ---- heat haze ---------------------------------------------------------
-paint in 0 140 256 60 with mix(earth1,sky2,0.4) a=0.3
+ sky0 #141E3A  sky1 #3B3552  sky2 #A0574A  sky3 #F0AB6C  sun #FFE2B0  dim #C97D5A
+ hill0 #151320  hill1 #28222E  hill2 #423037  hill3 #64443E
+ riv0 #241F31  riv1 #40364A  glint #EFC08A  ink #120E0D
+paint in 0 0 256 170 with ramp(clamp(y*0.0059,0,1),sky0,sky1,sky2,sky3)
+paint in 134 54 112 112 where dist(x,y,190,110)<52 with dim a=0.9*(1-dist(x,y,190,110)*0.0192)^2 blend=add
+paint in 174 94 32 32 where dist(x,y,190,110)<14 with sun
+paint in 0 118 256 60 where y>118+noise(x*0.02,1.3)*20 with hill2
+paint in 0 132 256 60 where y>132+noise(x*0.03,4.1)*16 with hill1
+paint in 0 198 256 58 with ramp(clamp((y-198)*0.02,0,1),riv1,riv0)
+paint in 0 198 256 58 where noise(x*0.30,y*0.7)>0.76 with glint a=0.14
+paint in 0 228 256 28 where y>228+noise(x*0.05,7.7)*6 with hill0
+stick 138 186 0.5 2 ink
 
-# ═══ SCENE 2: The Long Search ═══
-# The crow flies high and low, scanning the barren ground for any sign of water.
-# Focal: the crow mid-flight. Planes: vast empty sky / dry plains below.
-seed 202
+# ═══ 2: The Bank ═══
+# he stops at the water and points across · reeds, reflection
+seed 502
 SIZE 256 256
 PALETTE
- sky0 #3A5B6C  sky1 #7A9CAC  sky2 #B8C4C8  sky3 #E8D8B0
- sunc #FFF4D0  dim  #8A5A3A
- earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
- crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  beak #3A3A40
-# ---- sky ---------------------------------------------------------------
-paint in 0 0 256 180 with ramp(clamp(y*0.0055,0,1),sky0,sky1,sky2,sky3)
-# ---- dry plains --------------------------------------------------------
-paint in 0 180 256 76 with ramp(clamp((y-180)*0.013,0,1),dry,earth2,earth1)
-paint in 0 180 256 76 where noise(x*0.03,y*0.03)>0.55 with earth0 a=0.3 dither
-# ---- flying crow -------------------------------------------------------
-line 110 80 140 90 crow1 w=12
-line 110 80 140 90 crow0 w=8
-line 120 82 105 65 crow0 w=6  # wing up
-line 130 86 145 105 crow0 w=6 # wing down
-plot 105 80 crow0 r=5
-plot 100 82 beak r=2
-line 115 85 100 95 crow0 w=4
-# ---- dry riverbed below ------------------------------------------------
-paint in 60 210 140 20 with earth0 a=0.5
-paint in 60 210 140 20 where noise(x*0.2,y*0.2)>0.6 with dry a=0.5
+ sky0 #1A2440  sky1 #4A3A55  sky2 #B4654C  sky3 #F5B273  sun #FFE6BC  dim #D08256
+ wat0 #2A2438  wat1 #514055  glint #FFD3A0
+ bank0 #1D1620  bank1 #33242A  reed #14100F  ink #120E0D
+paint in 0 0 256 150 with ramp(clamp(y*0.0066,0,1),sky0,sky1,sky2,sky3)
+paint in 60 40 120 120 where dist(x,y,120,100)<58 with dim a=0.9*(1-dist(x,y,120,100)*0.0172)^2 blend=add
+paint in 104 84 32 32 where dist(x,y,120,100)<13 with sun
+paint in 0 148 256 108 with ramp(clamp((y-148)*0.012,0,1),wat1,wat0)
+paint in 0 148 256 108 where noise(x*0.26,y*0.7)>0.74 with glint a=0.12
+paint in 100 150 44 58 where noise(x*0.32,y*0.5)>0.66 with glint a=0.15
+paint in 0 206 256 50 where y>206+noise(x*0.03,9.1)*10 with bank1
+paint in 0 232 256 24 with bank0
+line 18 250 14 204 reed w=2.6
+line 27 252 24 208 reed w=2.2
+line 34 250 33 214 reed w=1.4
+line 240 250 244 206 reed w=2.6
+line 232 252 235 212 reed w=1.6
+stick 168 156 0.9 8 ink flip
 
-# ═══ SCENE 3: The Discovery ═══
-# The crow spots a glint of light reflecting off a tall, narrow pitcher.
-# Focal: the pitcher, bottom-left. Planes: bright sky / dark ground / bright water glint.
-seed 203
+# ═══ 3: The Wait ═══
+# sitting on the bank as the sun goes down · reflection in the water
+seed 503
 SIZE 256 256
 PALETTE
- sky0 #4A6B7C  sky1 #8AACBC  sky2 #D8E4E8  sky3 #F8E8C0
- sunc #FFF4D0  dim  #8A5A3A
- earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
- pit0 #2A1A10  pit1 #4A2A18  pit2 #6A3A20  glint #FFFFFF
- crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  beak #3A3A40
-# ---- sky & ground ------------------------------------------------------
-paint in 0 0 256 150 with ramp(clamp(y*0.006,0,1),sky0,sky1,sky2,sky3)
-paint in 0 150 256 106 with ramp(clamp((y-150)*0.01,0,1),dry,earth2,earth1)
-# ---- the pitcher -------------------------------------------------------
-paint in 50 160 40 70 with mix(pit1,pit2,clamp((x-50)*0.05,0,1))
-paint in 40 160 60 8 with pit0
-# ---- glint of water ----------------------------------------------------
-plot 65 165 glint r=3
-plot 70 168 glint r=1
-plot 60 167 glint r=1
-# ---- crow circling above -----------------------------------------------
-line 160 100 180 120 crow1 w=8
-line 160 100 180 120 crow0 w=4
-plot 155 100 crow0 r=4
-plot 150 102 beak r=2
-line 170 110 185 105 crow0 w=3
+ sky0 #101A34  sky1 #342E4C  sky2 #8C4A45  sky3 #E89A62  sun #FFDCA8  dim #C0714A
+ wat0 #221E30  wat1 #3E3448  glint #E8B47E
+ bank0 #171219  bank1 #2A1E23  ink #120E0D
+paint in 0 0 256 160 with ramp(clamp(y*0.0062,0,1),sky0,sky1,sky2,sky3)
+paint in 70 70 116 116 where dist(x,y,128,128)<58 with dim a=0.85*(1-dist(x,y,128,128)*0.0172)^2 blend=add
+paint in 116 112 24 24 where dist(x,y,128,124)<10 with sun
+paint in 0 160 256 96 with ramp(clamp((y-160)*0.014,0,1),wat1,wat0)
+paint in 0 160 256 96 where noise(x*0.24,y*0.7)>0.75 with glint a=0.11
+paint in 0 196 256 60 where y>196+noise(x*0.035,3.3)*8 with bank1
+paint in 0 222 256 34 with bank0
+stick 176 202 0.9 9 ink flip
 
-# ═══ SCENE 4: The Disappointment ═══
-# The crow lands and looks down. The water is impossibly low.
-# Focal: the deep dark interior of the pitcher. Planes: pitcher rim / deep shadow.
-seed 204
+# ═══ 4: The Crossing ═══
+# into the river · water to the waist · ripples and last light
+seed 504
 SIZE 256 256
 PALETTE
- sky0 #2A4B5C  sky1 #6A8C9C  sky2 #B8C4C8  sky3 #E8D8B0
- earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
- pit0 #0A0604  pit1 #1A0E08  pit2 #2A1A10  water #2A4A5C  glint #6A9CAC
- crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  beak #3A3A40  eye #FFFFFF
-# ---- background --------------------------------------------------------
-paint in 0 0 256 160 with ramp(clamp(y*0.005,0,1),sky0,sky1,sky2,sky3)
-paint in 0 160 256 96 with ramp(clamp((y-160)*0.01,0,1),dry,earth2,earth1)
-# ---- giant pitcher (zoomed in) -----------------------------------------
-paint in 80 100 100 140 with mix(pit1,pit2,clamp((x-80)*0.02,0,1))
-paint in 70 100 120 15 with pit0
-paint in 85 115 90 120 with pit0
-# ---- very low water ----------------------------------------------------
-paint in 85 200 90 30 with water
-plot 120 205 glint r=1
-# ---- crow on the rim ---------------------------------------------------
-line 110 85 130 100 crow1 w=12
-line 110 85 130 100 crow0 w=8
-plot 105 80 crow0 r=5
-plot 100 82 beak r=2
-plot 102 78 eye r=1
-line 115 90 100 95 crow0 w=4
-# ---- looking down (sad posture) ----------------------------------------
-line 130 100 140 120 crow0 w=4
-
-# ═══ SCENE 5: The Realization ═══
-# The crow looks at the ground. A small pebble catches its eye.
-# Focal: the pebble in the foreground. Planes: crow / pebble.
-seed 205
-SIZE 256 256
-PALETTE
- sky0 #2A4B5C  sky1 #6A8C9C  sky2 #B8C4C8  sky3 #E8D8B0
- earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
- pit0 #0A0604  pit1 #1A0E08  pit2 #2A1A10  water #2A4A5C  glint #6A9CAC
- crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  beak #3A3A40  eye #FFFFFF  peb #4A4A50
-# ---- background --------------------------------------------------------
-paint in 0 0 256 160 with ramp(clamp(y*0.005,0,1),sky0,sky1,sky2,sky3)
-paint in 0 160 256 96 with ramp(clamp((y-160)*0.01,0,1),dry,earth2,earth1)
-# ---- pitcher -----------------------------------------------------------
-paint in 160 100 60 80 with mix(pit1,pit2,clamp((x-160)*0.03,0,1))
-paint in 150 100 80 10 with pit0
-# ---- crow looking down ------------------------------------------------
-line 100 140 120 180 crow1 w=14
-line 100 140 120 180 crow0 w=10
-line 110 150 115 130 crow0 w=8
-plot 95 135 crow0 r=6
-plot 90 137 beak r=2
-plot 92 133 eye r=1
-line 120 160 130 180 crow0 w=4
-# ---- foreground pebble -------------------------------------------------
-plot 70 220 peb r=4
-plot 68 218 peb r=2
-plot 73 221 peb r=1
-# ---- sparkle of thought ------------------------------------------------
-plot 75 210 #FFFFFF r=1
-plot 80 205 #FFFFFF r=1
-
-# ═══ SCENE 6: The Clever Plan ═══
-# The crow picks up the pebble in its beak and flies to the pitcher.
-# Focal: the pebble in the beak. Planes: flight path.
-seed 206
-SIZE 256 256
-PALETTE
- sky0 #3A5B6C  sky1 #7A9CAC  sky2 #C8D4D8  sky3 #F8E8C0
- earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
- pit0 #0A0604  pit1 #1A0E08  pit2 #2A1A10  water #2A4A5C  glint #6A9CAC
- crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  peb #4A4A50
-# ---- background --------------------------------------------------------
-paint in 0 0 256 150 with ramp(clamp(y*0.006,0,1),sky0,sky1,sky2,sky3)
-paint in 0 150 256 106 with ramp(clamp((y-150)*0.01,0,1),dry,earth2,earth1)
-# ---- pitcher -----------------------------------------------------------
-paint in 180 160 50 80 with mix(pit1,pit2,clamp((x-180)*0.04,0,1))
-paint in 170 160 70 8 with pit0
-# ---- crow flying with pebble -------------------------------------------
-line 80 100 110 110 crow1 w=12
-line 80 100 110 110 crow0 w=8
-line 90 102 75 85 crow0 w=6
-line 100 106 115 125 crow0 w=6
-plot 75 100 crow0 r=5
-plot 70 102 peb r=2
-line 85 105 70 115 crow0 w=4
-# ---- trail of effort ---------------------------------------------------
-plot 120 115 #FFFFFF r=1 a=0.5
-plot 130 120 #FFFFFF r=1 a=0.3
-
-# ═══ SCENE 7: The Hard Work ═══
-# Drop by drop, pebble by pebble. The water slowly rises.
-# Focal: the pebbles splashing. Planes: repetitive effort.
-seed 207
-SIZE 256 256
-PALETTE
- sky0 #2A4B5C  sky1 #6A8C9C  sky2 #B8C4C8  sky3 #E8D8B0
- earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
- pit0 #0A0604  pit1 #1A0E08  pit2 #2A1A10  water #4A8A9C  glint #C8F0F0
- crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  peb #6A6A72
-# ---- background --------------------------------------------------------
-paint in 0 0 256 140 with ramp(clamp(y*0.006,0,1),sky0,sky1,sky2,sky3)
-paint in 0 140 256 116 with ramp(clamp((y-140)*0.01,0,1),dry,earth2,earth1)
-# ---- pitcher with rising water -----------------------------------------
-paint in 90 120 80 110 with mix(pit1,pit2,clamp((x-90)*0.025,0,1))
-paint in 80 120 100 12 with pit0
-paint in 95 180 70 50 with water
-paint in 95 180 70 4 with glint a=0.8
-# ---- crow at work ------------------------------------------------------
-line 140 80 160 130 crow1 w=16
-line 140 80 160 130 crow0 w=12
-line 150 90 165 70 crow0 w=8
-plot 135 75 crow0 r=6
-plot 125 80 crow2 r=2
-# ---- pebbles falling ---------------------------------------------------
-plot 130 90 peb r=2
-plot 135 110 peb r=2
-plot 140 140 peb r=2
-plot 120 160 peb r=1
-plot 145 165 peb r=2
-plot 110 175 peb r=2
-plot 150 175 peb r=1
-plot 125 185 peb r=2
-# ---- splash effects ----------------------------------------------------
-plot 130 185 glint r=1
-plot 145 187 glint r=1
-
-# ═══ SCENE 8: The Reward ═══
-# The water is high enough. The crow drinks deeply and flies away.
-# Focal: the crow drinking with a golden sunset behind.
-seed 208
-SIZE 256 256
-PALETTE
- sky0 #2A1A38  sky1 #6A3A5A  sky2 #B8704A  sky3 #F8D890
- sunc #FFF4D0  dim  #8A5A3A
- earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
- pit0 #2A1A10  pit1 #4A2A18  pit2 #6A3A20  water #4A8A9C  glint #C8F0F0
- crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844
-# ---- golden sunset sky -------------------------------------------------
-paint in 0 0 256 170 with ramp(clamp(y*0.005,0,1),sky0,sky1,sky2,sky3)
-paint in 150 40 100 100 where dist(x,y,190,80)<80 with dim a=(1-dist(x,y,190,80)*0.0125)^2 blend=add
-paint in 170 60 40 40 where dist(x,y,190,80)<20 with sunc
-# ---- ground ------------------------------------------------------------
-paint in 0 170 256 86 with ramp(clamp((y-170)*0.01,0,1),dry,earth2,earth1)
-# ---- pitcher full to the brim ------------------------------------------
-paint in 100 130 70 110 with mix(pit1,pit2,clamp((x-100)*0.03,0,1))
-paint in 90 130 90 10 with pit0
-paint in 95 140 80 40 with water
-paint in 95 140 80 3 with glint a=0.9
-# ---- crow drinking -----------------------------------------------------
-line 60 120 90 170 crow1 w=14
-line 60 120 90 170 crow0 w=10
-line 70 130 75 110 crow0 w=8
-plot 55 115 crow0 r=6
-# ---- beak dipping into water -------------------------------------------
-line 58 120 105 145 crow2 w=3
-plot 105 145 glint r=1
-# ---- reflection in water -----------------------------------------------
-paint in 95 145 80 30 with crow1 a=0.2
-paint in 95 145 80 30 where noise(x*0.1,y*0.1)>0.5 with glint a=0.3 dither
-# ---- final rays --------------------------------------------------------
-line 190 80 256 40 sunc w=1 a=0.3
-line 190 80 256 60 sunc w=1 a=0.3
-line 190 80 256 100 sunc w=1 a=0.3`;
+ sky0 #0C1528  sky1 #2C2846  sky2 #7E4244  sky3 #D98F5E  sun #FFD49C  dim #B86A45
+ wat0 #1E1B2B  wat1 #3A3144  glint #D8A678
+ ink #120E0D
+paint in 0 0 256 170 with ramp(clamp(y*0.0059,0,1),sky0,sky1,sky2,sky3)
+paint in 150 80 100 100 where dist(x,y,200,130)<50 with dim a=0.8*(1-dist(x,y,200,130)*0.02)^2 blend=add
+paint in 188 118 24 24 where dist(x,y,200,130)<10 with sun
+paint in 0 158 256 98 with ramp(clamp((y-158)*0.012,0,1),wat1,wat0)
+paint in 0 158 256 98 where noise(x*0.22,y*0.65)>0.74 with glint a=0.10
+stick 120 146 0.85 3 ink
+paint in 0 160 256 96 with wat0 a=0.82
+paint in 92 160 56 20 where abs(ell(x,y,120,170,20,3.5))<1.1 with glint a=0.42
+paint in 74 162 92 26 where abs(ell(x,y,120,176,36,6))<1.0 with glint a=0.30
+paint in 56 164 128 34 where abs(ell(x,y,120,183,54,8))<0.9 with glint a=0.20`;
 
 src.value = demoText;
 
