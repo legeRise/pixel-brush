@@ -42,6 +42,37 @@ figure caught mid-step.
 | 11 | fall | collapse, slip |
 | 12 | carry | holding something, walking with weight |
 
+### Animation
+
+```
+anim 16 20            # frames, fps — put it right after SIZE
+stickrig X Y S LEAN T1 T2 B1 B2 S1 S2 E1 E2 INK [flip]
+```
+
+`anim` tells the editor to render every frame and loop them. Inside an
+animated scene, `frame` (0..N-1) and `frames` (N) are numbers you can use in
+any expression. That is the whole walk cycle:
+
+```
+anim 16 20
+let p = frame/frames*pi*2
+let t1 = 0.44*sin(p)
+let t2 = 0.44*sin(p+pi)
+let b1 = 0.55*max(0,sin(p+2.0))
+let b2 = 0.55*max(0,sin(p+pi+2.0))
+stickrig 128 150 1 0.14 t1 t2 b1 b2 (-0.5*sin(p)) (-0.5*sin(p+pi)) 0.85 0.85 ink
+```
+
+`stickrig` takes the nine raw angles, so any pose can be animated. `stick`
+and `stickanim` remain for still shots.
+
+Rules:
+
+- The motion must be **periodic in `p`**, or the loop pops.
+- Prep cost is N × ~0.4 s at 256; keep N ≤ 24.
+- The editor pre-renders the clip, then plays at the declared fps.
+- `▦ Frames` exports the clip as a sprite sheet.
+
 Pose is **body language only**. The story is in who is where, how small, and
 what the light does — not in face detail. There is no face.
 

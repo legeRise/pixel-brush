@@ -190,7 +190,12 @@ textarea::selection{background:#b8864c55}
     <div id="viewViewer">
       <div class="viewer-controls workspace-tools"><button class="action compact" id="zoomOut">−</button><input id="zoomRange" type="range" min="1" max="12" value="2" style="width:120px"><button class="action compact" id="zoomIn">+</button><span id="zoomLabel" class="tool-note">2×</span><button class="action compact" id="btnPng" title="Save selected scene as PNG">PNG</button><button class="action compact" id="btnCopy" title="Copy script to clipboard">Copy code</button><span id="pixelInfo" class="tool-note">Hover image to inspect pixel color</span></div><div class="viewer-controls">
         <select id="sceneSelect" class="action" style="padding: 8px;"></select>
-        <button class="action primary" id="btnPlay">▶ Play Scene</button>
+        <button class="action primary" id="btnPlay">▶ Play</button>
+      </div>
+      <div class="viewer-controls" id="animRow" style="display:none">
+        <input id="frameRange" type="range" min="0" max="0" value="0" style="flex:1;min-width:110px">
+        <span id="frameLabel" class="tool-note">1 / 1</span>
+        <button class="action compact" id="btnFrames" title="Export every frame as one sprite sheet">▦ Frames</button>
       </div>
       <div class="viewer-canvas-wrapper">
         <canvas id="liveCanvas" width="256" height="256"></canvas>
@@ -203,6 +208,7 @@ textarea::selection{background:#b8864c55}
 <script>
 const BAY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5],RET={};
 let W=128,H=128;
+let ANIMN=0,ANIMF=12;
 let img=new Float32Array(W*H*3),P,V,DEF,ERR,NC,SEED,rs,D=false,T=.5,DEPTH,DL,CACHE=new Map(),FN={},SPR={};
 
 function setSize(w,h){
@@ -351,6 +357,18 @@ function stick(t){
   for(const o of a.slice(6))if(/^flip$/i.test(o))fl=true;
   stDraw(x,y,s,SPOSE[pi]||SPOSE[1],c,fl,SO.a);
 }
+
+function stickrig(t){
+  const a=flat(opts(sp(t)));
+  if(a.length<14)throw Error('stickrig needs x y s + 9 angles + ink');
+  const x=ev(a[1]),y=ev(a[2]),s=ev(a[3]);
+  const P=[];
+  for(let i=4;i<13;i++)P.push(ev(a[i]));
+  const c=col(a[13]);
+  let fl=false;
+  for(const o of a.slice(14))if(/^flip$/i.test(o))fl=true;
+  stDraw(x,y,s,P,c,fl,SO.a);
+}
 function stickanim(t){
   const a=flat(opts(sp(t)));
   const x=ev(a[1]),y=ev(a[2]),s=ev(a[3]),p1=Math.round(ev(a[4])),p2=Math.round(ev(a[5]));
@@ -372,6 +390,7 @@ function exec(N){for(const[ln,t,ch]of N){try{cmd(t,ch);NC++}catch(e){if(e===RET)
 function cmd(t,ch){const k=t.split(/\s/)[0].toLowerCase();
 if(k==='size'){const a=sp(t);if(a.length>=3)setSize(ev(a[1]),ev(a[2]));return}
 if(k==='clip')return;
+if(k==='anim'){const a=sp(t);if(a.length>=3){ANIMN=Math.round(ev(a[1]));ANIMF=Math.round(ev(a[2]))}return}
 if(k==='seed'){SEED=Math.floor(ev(t.slice(4)));rs=SEED}
 else if(k==='let'){const m=t.match(/^let\s+(\w+)\s*=\s*(.+)$/i);if(!m)throw Error('bad let');V[m[1]]=ev(m[2])}
 else if(k==='for'){const m=t.match(/^for\s+(\w+)\s+in\s+(\S+?)\.\.(\S+)(?:\s+step\s+(\S+))?$/i);if(!m)throw Error('bad for');
@@ -389,14 +408,15 @@ else if(k==='sprite'){SPR[t.split(/\s+/)[1]]=ch}
 else if(k==='stamp'){const a=sp(t),r=SPR[a[1]];if(!r)throw Error('unknown sprite "'+a[1]+'"');drawRows(r,ev(a[2]),ev(a[3]),a.slice(4))}
 else if(k==='stick')stick(t);
 else if(k==='stickanim')stickanim(t);
+else if(k==='stickrig')stickrig(t);
 else if(k==='fn'){const m=t.match(/^fn\s+(\w+)\s*\(([^)]*)\)\s*=\s*(.+)$/i);if(!m)throw Error('bad fn');FN[m[1]]=[m[2].split(',').map(s=>s.trim()).filter(Boolean),compile(m[3])]}
 else if(DEF[k]){const[ps,body]=DEF[k];if(DEPTH>=16)throw Error('recursion depth limit');const args=sp(t.slice(k.length).trim()).map(ev);
 const old=V;V=Object.assign({},old);ps.forEach((p,i)=>V[p]=args[i]);DEPTH++;try{exec(body)}catch(e){if(e!==RET)throw e}finally{DEPTH--;V=old}}
 else throw Error('unknown command "'+k+'"')}
 
-function run(srcText){
+function run(srcText,fr,nf){
   if(!/^\s*SIZE\s+\S+\s+\S+\s*$/im.test(srcText))setSize(128,128);
-  img.fill(0);P={};V={pi:Math.PI,W,H};DEF={};FN={};SPR={};ERR=[];NC=0;SEED=1;rs=1;DEPTH=0;
+  img.fill(0);P={};V={pi:Math.PI,W,H,frame:fr||0,frames:nf||1};ANIMN=0;ANIMF=12;DEF={};FN={};SPR={};ERR=[];NC=0;SEED=1;rs=1;DEPTH=0;
   DL=performance.now()+Math.min(15000,Math.max(2500,2500*W*H/16384));
   const L=srcText.split('\n').map((l,i)=>[i+1,/^\s*```/.test(l)?'':l.replace(/(^|\s)#(?![0-9a-fA-F]{6}\b).*$/,'').replace(/\s+$/,'')]);
   try{exec(parse(L,0,true)[0])}catch(e){if(e!==RET)ERR.push('ERR '+e.message)}
@@ -490,7 +510,33 @@ stick 120 146 0.85 3 ink
 paint in 0 160 256 96 with wat0 a=0.82
 paint in 92 160 56 20 where abs(ell(x,y,120,170,20,3.5))<1.1 with glint a=0.42
 paint in 74 162 92 26 where abs(ell(x,y,120,176,36,6))<1.0 with glint a=0.30
-paint in 56 164 128 34 where abs(ell(x,y,120,183,54,8))<0.9 with glint a=0.20`;
+paint in 56 164 128 34 where abs(ell(x,y,120,183,54,8))<0.9 with glint a=0.20
+
+# ═══ 5: The Walk (loop) ═══
+# 16-frame cycle · hips bob, knees bend, arms counter-swing
+seed 507
+anim 16 20
+SIZE 256 256
+PALETTE
+ sky0 #141C36  sky1 #3A3350  sky2 #A55A4C  sky3 #F0A96B  sun #FFE2B0  dim #C97D5A
+ sea0 #262640  sea1 #463A4E  glint #EABE86  sand0 #302428  sand1 #523C32  ink #120E0D
+let p = frame/frames*pi*2
+let t1 = 0.44*sin(p)
+let t2 = 0.44*sin(p+pi)
+let b1 = 0.55*max(0,sin(p+2.0))
+let b2 = 0.55*max(0,sin(p+pi+2.0))
+let a1 = -0.50*sin(p)
+let a2 = -0.50*sin(p+pi)
+paint in 0 0 256 150 with ramp(clamp(y*0.0066,0,1),sky0,sky1,sky2,sky3)
+paint in 150 60 110 110 where dist(x,y,200,110)<52 with dim a=0.85*(1-dist(x,y,200,110)*0.0192)^2 blend=add
+paint in 186 98 28 28 where dist(x,y,200,110)<12 with sun
+paint in 0 146 256 36 with ramp(clamp((y-146)*0.03,0,1),sea1,sea0)
+paint in 0 146 256 36 where noise(x*0.2,y*0.5)>0.78 with glint a=0.16
+paint in 0 180 256 76 with ramp(clamp((y-180)*0.02,0,1),sand1,sand0)
+paint in 0 180 256 76 where noise(x*0.05,y*0.1)>0.62 with sand0 a=0.16
+paint in 60 200 140 36 where ell(x,y,128,219,44,6)<0 with sand0 a=0.45
+stickrig 128 150 1 0.14 t1 t2 b1 b2 a1 a2 0.85 0.85 ink
+`;
 
 src.value = demoText;
 
@@ -582,7 +628,8 @@ function renderAll() {
     setTimeout(() => {
       if (currentRender !== renderGeneration) return;
       try {
-        const result = run(sceneCode);
+        const animMeta=sceneMeta(sceneCode);
+        const result = run(sceneCode,0,animMeta.n);
         canvas.width = result.W;
         canvas.height = result.H;
         const ctx = canvas.getContext('2d');
@@ -601,7 +648,7 @@ function renderAll() {
           meta.textContent = result.ERR[0].substring(0, 30) + '...';
         } else {
           status.innerHTML = `<span class="status-ok">Success</span>`;
-          meta.textContent = `${result.W}x${result.H}`;
+          meta.textContent = `${result.W}x${result.H}` + (animMeta.n>1?` · ${animMeta.n}f`:'');
         }
         
         // Store for export
@@ -620,24 +667,108 @@ function renderAll() {
 }
 
 // Live Viewer logic
-sceneSelect.addEventListener('change', (e) => {
-  const idx = parseInt(e.target.value);
-  const sceneCode = src.value.split(/\n\s*\n/).filter(s => s.trim().length > 0 && s.includes('SIZE'))[idx];
-  if(!sceneCode) return;
+const animRow=document.getElementById('animRow');
+const frameRange=document.getElementById('frameRange');
+const frameLabel=document.getElementById('frameLabel');
+const btnFrames=document.getElementById('btnFrames');
+let live={code:'',n:1,fps:12,frame:0,timer:null,cache:null,w:256,h:256,token:0};
 
-  const result = run(sceneCode);
-  liveCanvas.width = result.W;
-  liveCanvas.height = result.H;
-  const ctx = liveCanvas.getContext('2d');
-  const id = ctx.createImageData(result.W, result.H);
-  for (let i = 0; i < result.W * result.H; i++) {
-    id.data.set([result.img[i*3], result.img[i*3+1], result.img[i*3+2], 255], i * 4);
-  }
-  ctx.putImageData(id, 0, 0);
+function sceneAt(i){
+  return src.value.split(/\n\s*\n/).filter(s=>s.trim().length>0&&s.includes('SIZE'))[i];
+}
+function sceneMeta(code){
+  const m=/^\s*anim\s+(\d+)\s+(\d+)\s*$/m.exec(code);
+  return m?{n:Math.max(1,+m[1]),fps:Math.max(1,+m[2]||12)}:{n:1,fps:12};
+}
+function frameData(r){
+  const d=new Uint8ClampedArray(r.W*r.H*4);
+  for(let i=0;i<r.W*r.H;i++){d[i*4]=r.img[i*3];d[i*4+1]=r.img[i*3+1];d[i*4+2]=r.img[i*3+2];d[i*4+3]=255}
+  return d;
+}
+function blit(data,w,h){
+  if(liveCanvas.width!==w||liveCanvas.height!==h){liveCanvas.width=w;liveCanvas.height=h}
+  const ctx=liveCanvas.getContext('2d');
+  const id=ctx.createImageData(w,h);
+  id.data.set(data);
+  ctx.putImageData(id,0,0);
+  const z=Number(document.getElementById('zoomRange').value)||1;
+  liveCanvas.style.width=(w*z)+'px';
+  liveCanvas.style.height=(h*z)+'px';
+}
+function showFrame(i){
+  if(!live.cache||!live.cache[i])return;
+  live.frame=i;
+  blit(live.cache[i],live.w,live.h);
+  frameRange.value=i;
+  frameLabel.textContent=(i+1)+' / '+live.n;
+}
+function stopPlay(){
+  clearInterval(live.timer);live.timer=null;
+  const b=document.getElementById('btnPlay');
+  if(b)b.textContent='▶ Play';
+}
+function play(){
+  if(!live.cache||live.n<2)return;
+  stopPlay();
+  document.getElementById('btnPlay').textContent='❚❚ Pause';
+  live.timer=setInterval(()=>showFrame((live.frame+1)%live.n),1000/live.fps);
+}
+function prepare(code){
+  const m=sceneMeta(code),my=++live.token;
+  stopPlay();
+  live.code=code;live.n=m.n;live.fps=m.fps;live.cache=null;live.frame=0;
+  animRow.style.display=m.n>1?'flex':'none';
+  frameRange.max=m.n-1;frameRange.value=0;
+  frameRange.disabled=m.n>1;
+  frameLabel.textContent=m.n>1?'preparing…':'1 / 1';
+  const first=run(code,0,m.n);
+  live.w=first.W;live.h=first.H;
+  blit(frameData(first),first.W,first.H);
+  if(m.n<2){frameRange.disabled=false;return}
+  live.cache=[];live.cache[0]=frameData(first);
+  let i=1;
+  const step=()=>{
+    if(my!==live.token)return;
+    const r=run(code,i,m.n);
+    live.cache[i]=frameData(r);
+    frameLabel.textContent='preparing '+(i+1)+' / '+m.n;
+    i++;
+    if(i<m.n)setTimeout(step,0);
+    else{
+      frameRange.disabled=false;
+      frameLabel.textContent='1 / '+m.n;
+      play();
+    }
+  };
+  setTimeout(step,0);
+}
+sceneSelect.addEventListener('change',e=>{
+  const code=sceneAt(parseInt(e.target.value));
+  if(code)prepare(code);
 });
-
-btnPlay.addEventListener('click', () => {
-  sceneSelect.dispatchEvent(new Event('change'));
+btnPlay.addEventListener('click',()=>{
+  if(live.timer)stopPlay();
+  else if(live.cache&&live.cache.length===live.n)play();
+});
+frameRange.addEventListener('input',()=>{
+  if(!live.cache)return;
+  stopPlay();
+  showFrame(parseInt(frameRange.value));
+});
+btnFrames.addEventListener('click',()=>{
+  if(!live.cache||live.n<2)return;
+  const cols=Math.min(8,live.n),rows=Math.ceil(live.n/cols);
+  const cv=document.createElement('canvas');
+  cv.width=cols*live.w;cv.height=rows*live.h;
+  const ctx=cv.getContext('2d');
+  for(let i=0;i<live.n;i++){
+    const tmp=document.createElement('canvas');
+    tmp.width=live.w;tmp.height=live.h;
+    tmp.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(live.cache[i]),live.w,live.h),0,0);
+    ctx.drawImage(tmp,(i%cols)*live.w,Math.floor(i/cols)*live.h);
+  }
+  const a=document.createElement('a');
+  a.href=cv.toDataURL('image/png');a.download='sprite-sheet.png';a.click();
 });
 
 // Export Logic
