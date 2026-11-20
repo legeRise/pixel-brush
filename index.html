@@ -63,8 +63,10 @@
   }
 
   /* View Switching */
-  #viewStoryboard, #viewViewer { display: none; width: 100%; height: 100%; overflow-y: auto; }
+  #viewStoryboard, #viewViewer, #viewStory { display: none; width: 100%; height: 100%; overflow-y: auto; }
   #viewStoryboard.active, #viewViewer.active { display: block; }
+  #viewStory.active { display: flex; flex-direction: column; gap: 10px; height: 100%; overflow: hidden; }
+  #storyCanvas{width:100%;max-width:512px;height:auto;display:block;margin:0 auto}
 
   /* Storyboard Grid */
   .storyboard-grid {
@@ -130,6 +132,7 @@ textarea{padding:16px 17px;color:#d8dbe0;background:#14171b;font-size:12.5px;lin
 textarea::selection{background:#b8864c55}
 #viewStoryboard,#viewViewer{height:100%;overflow:auto;border:1px solid #292e35;border-radius:13px;background:#171a1f;padding:14px}
 #viewViewer{display:none}
+#viewStory{display:none}
 #viewViewer.active{display:flex;flex-direction:column;gap:12px}
 #viewStoryboard.active{display:block}
 .storyboard-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding-bottom:14px}
@@ -158,6 +161,7 @@ textarea::selection{background:#b8864c55}
     <div class="tabs">
       <button class="tab active" data-target="viewStoryboard">Storyboard</button>
       <button class="tab" data-target="viewViewer">Live Viewer</button>
+      <button class="tab" data-target="viewStory">Story</button>
     </div>
     <button class="action compact" id="btnSheet" disabled title="Export all rendered scenes as a contact sheet">▦ Sheet</button>
     <button class="action compact" id="btnZip" disabled title="Export all scenes as PNG files">⇩ ZIP</button>
@@ -199,6 +203,17 @@ textarea::selection{background:#b8864c55}
       </div>
       <div class="viewer-canvas-wrapper">
         <canvas id="liveCanvas" width="256" height="256"></canvas>
+      </div>
+    </div>
+    <div id="viewStory">
+      <div class="viewer-controls">
+        <button class="action primary" id="storyPlay">▶ Play story</button>
+        <input id="storyTime" type="range" min="0" max="1000" value="0" style="flex:1;min-width:120px">
+        <span id="storyClock" class="tool-note">0.0s</span>
+      </div>
+      <textarea id="storySrc" spellcheck="false" style="flex:none;height:104px;border:1px solid #2a2e35;border-radius:8px"></textarea>
+      <div class="viewer-canvas-wrapper" style="flex:1;min-height:300px">
+        <canvas id="storyCanvas" width="512" height="512"></canvas>
       </div>
     </div>
   </div>
@@ -305,7 +320,7 @@ const SPOSE={
  6:[0.10,0.70,-0.25,1.70,1.50,2.50,-2.40,0.30,0.30],
  7:[0.05,0.12,-0.12,0.12,0.12,2.35,0.15,0.35,0.30],
  8:[0.10,0.15,-0.15,0.12,0.12,1.45,-0.10,0.10,0.25],
- 9:[0.15,0.95,-0.95,1.45,1.45,-0.35,0.35,0.55,0.55],
+ 9:[0.22,1.32,-1.10,0.22,0.45,-0.55,-0.45,0.55,0.55],
  10:[0.12,0.40,-0.40,0.45,0.45,0.95,-0.55,1.70,1.35],
  11:[-0.55,0.55,-0.35,0.40,0.25,1.20,-1.10,0.60,0.55],
  12:[0.10,0.25,-0.25,0.20,0.20,-0.55,-0.45,1.30,1.30]
@@ -547,7 +562,7 @@ let renderGeneration = 0;
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', (e) => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#viewStoryboard, #viewViewer').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('#viewStoryboard, #viewViewer, #viewStory').forEach(v => v.classList.remove('active'));
     e.target.classList.add('active');
     document.getElementById(e.target.dataset.target).classList.add('active');
   });
@@ -860,5 +875,180 @@ src.addEventListener('input',()=>{
   clearTimeout(liveRenderTimer);liveRenderTimer=setTimeout(()=>renderAll(),700);
 });try{const saved=localStorage.getItem(key);if(saved&&saved!==src.value&&confirm('Restore your previous Pixel Brush script?'))src.value=saved}catch(e){}document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();renderAll()}});sceneSelect.addEventListener('change',()=>setTimeout(zoom,30));setTimeout(zoom,120);
 })();
-</script></body>
+</script>
+<script>
+/* ---- plain-language story player ------------------------------------
+   One beat per line. The parser turns verbs into a timeline and the
+   stickman acts it out on a canvas at 60fps.                          */
+(function(){
+const SC=document.getElementById('storyCanvas');
+const SRC=document.getElementById('storySrc');
+const btn=document.getElementById('storyPlay');
+const slider=document.getElementById('storyTime');
+const clock=document.getElementById('storyClock');
+if(!SC||!SRC)return;
+const ctx=SC.getContext('2d');
+const PI=Math.PI;
+const POSES={
+ 1:[0.04,0.09,-0.09,0.10,0.10,0.11,-0.06,0.22,0.30],
+ 2:[0.14,0.40,-0.38,0.15,0.15,-0.40,0.40,0.55,0.55],
+ 4:[0.38,0.80,-0.55,0.85,0.30,-0.95,0.85,1.45,1.45],
+ 6:[0.10,0.70,-0.25,1.70,1.50,2.50,-2.40,0.30,0.30],
+ 7:[0.05,0.12,-0.12,0.12,0.12,1.90,0.15,0.30,0.30],
+ 8:[0.10,0.15,-0.15,0.12,0.12,1.45,-0.10,0.10,0.25],
+ 9:[0.22,1.32,-1.10,0.22,0.45,-0.55,-0.45,0.55,0.55],
+ 11:[-0.55,0.55,-0.35,0.40,0.25,1.20,-1.10,0.60,0.55]
+};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>t*t*(3-2*t);
+const mixc=(a,b,t)=>'rgb('+Math.round(lerp(a[0],b[0],t))+','+Math.round(lerp(a[1],b[1],t))+','+Math.round(lerp(a[2],b[2],t))+')';
+
+function walkPose(p,run){
+  if(run)return [0.38,0.82*Math.sin(p),0.82*Math.sin(p+PI),0.30+0.95*Math.max(0,Math.sin(p+1.9)),0.30+0.95*Math.max(0,Math.sin(p+PI+1.9)),-0.95*Math.sin(p),-0.95*Math.sin(p+PI),1.50,1.50];
+  return [0.14,0.42*Math.sin(p),0.42*Math.sin(p+PI),0.52*Math.max(0,Math.sin(p+2.0)),0.52*Math.max(0,Math.sin(p+PI+2.0)),-0.45*Math.sin(p),-0.45*Math.sin(p+PI),0.85,0.85];
+}
+function compile(text){
+  const lines=text.split('\n').map(x=>x.trim().toLowerCase()).filter(x=>x&&x[0]!=='#');
+  let x=96,sun=0,drop=0,t=0,prev=POSES[1];
+  const beats=[];
+  for(const line of lines){
+    if(/sun/.test(line)&&/(set|down|dip|sink|goes)/.test(line)){
+      beats.push({k:'sun',t,dur:4,x0:x,x1:x,s0:sun,s1:Math.min(1,sun+0.95),p0:prev,p1:prev,d0:drop,d1:drop});
+      sun=Math.min(1,sun+0.95);t+=4;continue;
+    }
+    let k='wait',dur=1.1,target=x;
+    if(/\brun/.test(line)){k='run';dur=1.5}
+    else if(/\bwalk/.test(line)){k='walk';dur=2.2}
+    else if(/\bjump/.test(line)){k='jump';dur=0.9}
+    else if(/\bsit/.test(line)){k='sit';dur=1.2}
+    else if(/\bstand|get up/.test(line)){k='stand';dur=1.0}
+    else if(/\bwave/.test(line)){k='wave';dur=1.4}
+    else if(/\bpoint/.test(line)){k='point';dur=1.2}
+    else if(/\bfall/.test(line)){k='fall';dur=1.0}
+    if(/river|water|sea/.test(line))target=182;
+    else if(/sun/.test(line))target=252;
+    else if(/home/.test(line))target=64;
+    else if(/left/.test(line))target=Math.max(48,x-60);
+    else if(/right/.test(line))target=Math.min(252,x+60);
+    const pk={walk:2,run:4,jump:6,sit:9,stand:1,wave:7,point:8,fall:11,wait:1}[k];
+    const d1=k==='sit'?52:0;
+    beats.push({k,t,dur,x0:x,x1:target,s0:sun,s1:sun,p0:prev,p1:POSES[pk],d0:drop,d1});
+    prev=POSES[pk];x=target;drop=d1;t+=dur;
+  }
+  return {beats,total:Math.max(t,1)};
+}
+function stateAt(st,t){
+  const bs=st.beats;
+  let i=bs.findIndex(b=>t>=b.t&&t<b.t+b.dur);
+  if(i<0)i=bs.length-1;
+  const b=bs[i],k=Math.min(1,Math.max(0,(t-b.t)/b.dur)),e=ease(k);
+  let P,lift=0;
+  if(b.k==='walk')P=walkPose(t*PI*2*1.15,false);
+  else if(b.k==='run')P=walkPose(t*PI*2*1.9,true);
+  else{
+    const m=ease(Math.min(1,k/0.35));
+    P=b.p1.map((v,j)=>lerp(b.p0[j],v,m));
+  }
+  if(b.k==='jump')lift=-42*Math.sin(PI*k);
+  return {x:lerp(b.x0,b.x1,e),sun:lerp(b.s0,b.s1,e),drop:lerp(b.d0,b.d1,e)+lift,P};
+}
+function drawBg(sun){
+  const day=[[27,36,64],[62,53,82],[167,92,78],[242,172,110]];
+  const night=[[10,16,32],[26,26,50],[74,46,54],[122,74,62]];
+  const g=ctx.createLinearGradient(0,0,0,332);
+  [0,0.45,0.78,1].forEach((p,i)=>g.addColorStop(p,mixc(day[i],night[i],sun)));
+  ctx.fillStyle=g;ctx.fillRect(0,0,512,332);
+  const sx=392,sy=252+sun*96;
+  const halo=ctx.createRadialGradient(sx,sy,4,sx,sy,140);
+  halo.addColorStop(0,'rgba(255,222,168,'+(0.5*(1-sun*0.55))+')');
+  halo.addColorStop(0.4,'rgba(220,140,90,'+(0.18*(1-sun*0.55))+')');
+  halo.addColorStop(1,'rgba(220,140,90,0)');
+  ctx.fillStyle=halo;ctx.beginPath();ctx.arc(sx,sy,140,0,7);ctx.fill();
+  ctx.fillStyle=mixc([255,228,180],[255,172,110],sun);
+  ctx.beginPath();ctx.arc(sx,sy,26,0,7);ctx.fill();
+  const sg=ctx.createLinearGradient(0,332,0,390);
+  sg.addColorStop(0,mixc([80,66,92],[42,38,58],sun));
+  sg.addColorStop(1,mixc([44,40,60],[24,22,36],sun));
+  ctx.fillStyle=sg;ctx.fillRect(0,332,512,58);
+  for(let i=0;i<15;i++){
+    const y=336+i*3.6,a=(1-sun*0.45)*(0.09+0.05*Math.sin(i*2.1));
+    ctx.fillStyle='rgba(245,196,146,'+a.toFixed(3)+')';
+    ctx.fillRect(290+Math.sin(i*3.3)*80,y,34+16*Math.sin(i*1.7),1);
+  }
+  const bg=ctx.createLinearGradient(0,390,0,512);
+  bg.addColorStop(0,mixc([96,68,52],[56,42,36],sun));
+  bg.addColorStop(1,mixc([56,40,34],[30,24,24],sun));
+  ctx.fillStyle=bg;ctx.fillRect(0,390,512,122);
+  ctx.fillStyle='rgba(20,14,14,0.20)';
+  for(const p of [[60,470,3],[120,492,4],[420,486,3],[470,462,2],[210,500,4]]){
+    ctx.beginPath();ctx.ellipse(p[0],p[1],p[2]*2,p[2]*0.8,0,0,7);ctx.fill();
+  }
+  ctx.strokeStyle='rgba(18,13,12,0.85)';ctx.lineCap='round';
+  ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(40,470);ctx.quadraticCurveTo(34,430,46,404);ctx.stroke();
+  ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(58,472);ctx.quadraticCurveTo(55,438,66,414);ctx.stroke();
+  ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(26,474);ctx.quadraticCurveTo(22,446,30,424);ctx.stroke();
+}
+function fig(x,gy,S,P){
+  const lean=P[0],t1=P[1],t2=P[2],b1=P[3],b2=P[4],s1=P[5],s2=P[6],e1=P[7],e2=P[8];
+  const TR=32*S,HD=17*S,HR=16*S,TL=33*S,SL=34*S,UA=21*S,FA=20*S;
+  const hy=gy-67*S, hx=x;
+  const cx=hx+Math.sin(lean)*TR, cy=hy-Math.cos(lean)*TR;
+  const hdx=cx+Math.sin(lean)*HD, hdy=cy-Math.cos(lean)*HD;
+  const sx=cx, sy=cy+3*S;
+  const k1=[hx+Math.sin(t1)*TL,hy+Math.cos(t1)*TL];
+  const f1=[k1[0]+Math.sin(t1-b1)*SL,k1[1]+Math.cos(t1-b1)*SL];
+  const k2=[hx+Math.sin(t2)*TL,hy+Math.cos(t2)*TL];
+  const f2=[k2[0]+Math.sin(t2-b2)*SL,k2[1]+Math.cos(t2-b2)*SL];
+  const e1p=[sx+Math.sin(s1)*UA,sy+Math.cos(s1)*UA];
+  const w1=[e1p[0]+Math.sin(s1+e1)*FA,e1p[1]+Math.cos(s1+e1)*FA];
+  const e2p=[sx+Math.sin(s2)*UA,sy+Math.cos(s2)*UA];
+  const w2=[e2p[0]+Math.sin(s2+e2)*FA,e2p[1]+Math.cos(s2+e2)*FA];
+  ctx.strokeStyle='#1B1816';ctx.fillStyle='#1B1816';ctx.lineCap='round';ctx.lineJoin='round';
+  const seg=(a,b,r1,r2)=>{ctx.lineWidth=r1+r2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()};
+  seg([hx,hy],k2,3.2*S,3.0*S);seg(k2,f2,3.0*S,2.6*S);
+  seg([sx,sy],e2p,3.0*S,2.7*S);seg(e2p,w2,2.7*S,2.5*S);
+  seg([hx,hy],[cx,cy],3.8*S,3.5*S);
+  seg([sx,sy],e1p,3.0*S,2.7*S);seg(e1p,w1,2.7*S,2.5*S);
+  seg([hx,hy],k1,3.2*S,3.0*S);seg(k1,f1,3.0*S,2.6*S);
+  ctx.beginPath();ctx.arc(hdx,hdy,HR,0,7);ctx.fill();
+}
+
+SRC.value=`# one beat per line — verbs, places, the sun
+he walks to the river
+he sits down
+the sun sets
+he stands up
+he waves
+he walks home`;
+let story=compile(SRC.value),playing=true,t0=performance.now(),acc=0,last=performance.now();
+
+function render(t){
+  const s=stateAt(story,t);
+  drawBg(s.sun);
+  ctx.fillStyle='rgba(12,9,10,0.30)';
+  ctx.beginPath();ctx.ellipse(s.x,470,36,7,0,0,7);ctx.fill();
+  fig(s.x,470+s.drop,1.2,s.P);
+  const v=ctx.createRadialGradient(256,236,150,256,236,330);
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,0.28)');
+  ctx.fillStyle=v;ctx.fillRect(0,0,512,512);
+  slider.value=Math.round(t/story.total*1000);
+  clock.textContent=t.toFixed(1)+'s';
+}
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  const vw=document.getElementById('viewStory');
+  const vis=!vw||!vw.classList||vw.classList.contains('active');
+  if(vis){
+    if(playing){acc=(acc+dt)%story.total}
+    render(acc);
+  }
+  requestAnimationFrame(frame);
+}
+btn.addEventListener('click',()=>{playing=!playing;btn.textContent=playing?'❚❚ Pause':'▶ Play story'});
+slider.addEventListener('input',()=>{playing=false;btn.textContent='▶ Play story';acc=slider.value/1000*story.total});
+SRC.addEventListener('input',()=>{clearTimeout(SRC._t);SRC._t=setTimeout(()=>{story=compile(SRC.value);acc=0;},450)});
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
 </html>

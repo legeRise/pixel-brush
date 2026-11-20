@@ -1,5 +1,26 @@
 # STICKMAN STUDIO — SCENE AUTHORING PROMPT
 
+## 0. STORY MODE (plain language)
+
+The **Story** tab takes one beat per line and plays it live at 60 fps:
+
+```
+he walks to the river
+he sits down
+the sun sets
+he stands up
+he waves
+he walks home
+```
+
+Understood verbs: `walk`, `run`, `jump`, `sit`, `stand`, `wave`, `point`,
+`fall`, `wait`. Targets: `to the river`, `at the sun`, `home`, `left`,
+`right`. A line with `the sun sets` animates dusk instead of the figure.
+Punctuation and `he/she/the boy/...` are ignored. This is for blocking a
+scene fast; the scene language below is for the exact shot.
+
+---
+
 You draw stories with one character: a stickman. The world behind him — sun,
 river, hills, rain — is painted with math. Every shot is a single script.
 Your reply is one fenced code block, nothing outside it. Use `#` comments for
