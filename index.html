@@ -100,7 +100,7 @@
   .status-err { color: var(--bad); font-weight: bold; }
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--mut); }
 /* Studio refresh */
-header{gap:16px;padding:10px 16px;flex-wrap:wrap}header h1{font-size:15px}.toolbar{gap:7px;flex-wrap:wrap;justify-content:flex-end}main{grid-template-columns:minmax(320px,42%) minmax(0,1fr);gap:12px;padding:12px}.card{border-radius:12px}.card-header{font-size:11px;letter-spacing:.04em;text-transform:uppercase}.viewer-controls{align-items:center;flex-wrap:wrap}.viewer-canvas-wrapper{position:relative;background-color:#101318;background-image:linear-gradient(45deg,#252830 25%,transparent 25%),linear-gradient(-45deg,#252830 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#252830 75%),linear-gradient(-45deg,transparent 75%,#252830 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}#liveCanvas{image-rendering:pixelated;max-width:none;max-height:none}.scene-card{transition:border-color .15s,transform .15s}.scene-card:hover{border-color:#4b5563;transform:translateY(-1px)}.workspace-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.tool-note{color:var(--mut);font-size:11px}button.action.compact{padding:6px 9px}@media(max-width:950px){main{grid-template-columns:minmax(260px,38%) minmax(0,1fr);padding:8px;gap:8px}}@media(max-width:680px){body{height:auto;min-height:100vh;overflow:auto}header{align-items:flex-start}main{display:flex;flex-direction:column;overflow:visible;min-height:calc(100vh - 110px)}.pane{min-height:480px;overflow:visible}#viewStoryboard,#viewViewer{height:auto;min-height:450px}.viewer-canvas-wrapper{min-height:380px;height:calc(100vh - 250px)}}
+header{gap:16px;padding:10px 16px;flex-wrap:wrap}header h1{font-size:15px}.toolbar{gap:7px;flex-wrap:wrap;justify-content:flex-end}main{grid-template-columns:minmax(320px,42%) minmax(0,1fr);gap:12px;padding:12px}.card{border-radius:12px}.card-header{font-size:11px;letter-spacing:.04em;text-transform:uppercase}.viewer-controls{align-items:center;flex-wrap:wrap}.viewer-canvas-wrapper{position:relative;background-color:#101318;background-image:linear-gradient(45deg,#252830 25%,transparent 25%),linear-gradient(-45deg,#252830 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#252830 75%),linear-gradient(-45deg,transparent 75%,#252830 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}#liveCanvas{image-rendering:pixelated;max-width:none;max-height:none}.viewer-canvas-wrapper{overflow:auto}.scene-card{transition:border-color .15s,transform .15s}.scene-card:hover{border-color:#4b5563;transform:translateY(-1px)}.workspace-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.tool-note{color:var(--mut);font-size:11px}button.action.compact{padding:6px 9px}@media(max-width:950px){main{grid-template-columns:minmax(260px,38%) minmax(0,1fr);padding:8px;gap:8px}}@media(max-width:680px){body{height:auto;min-height:100vh;overflow:auto}header{align-items:flex-start}main{display:flex;flex-direction:column;overflow:visible;min-height:calc(100vh - 110px)}.pane{min-height:480px;overflow:visible}#viewStoryboard,#viewViewer{height:auto;min-height:450px}.viewer-canvas-wrapper{min-height:380px;height:calc(100vh - 250px)}}
 </style>
 </head>
 <body>
@@ -545,7 +545,6 @@ line 190 80 256 100 sunc w=1 a=0.3`;
 src.value = demoText;
 
 let cachedScenes = [];
-  let completed=0;
 
 // UI Tab Switching
 document.querySelectorAll('.tab').forEach(tab => {
@@ -565,6 +564,7 @@ function renderAll() {
   board.innerHTML = '';
   sceneSelect.innerHTML = '';
   cachedScenes = [];
+  let completed=0;
   
   if (scenes.length === 0) {
     board.innerHTML = '<div class="empty-state">No scenes found. Make sure your code contains "SIZE" and is separated by blank lines.</div>';
