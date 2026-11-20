@@ -548,6 +548,7 @@ line 190 80 256 100 sunc w=1 a=0.3`;
 src.value = demoText;
 
 let cachedScenes = [];
+let renderGeneration = 0;
 
 // UI Tab Switching
 document.querySelectorAll('.tab').forEach(tab => {
@@ -561,6 +562,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 // Render logic
 function renderAll() {
+  const currentRender = ++renderGeneration;
   const text = src.value;
   const scenes = text.split(/\n\s*\n/).filter(s => s.trim().length > 0 && s.includes('SIZE'));
   
@@ -584,6 +586,7 @@ function renderAll() {
 
   let failed = 0;
   const finishRender = () => {
+    if (currentRender !== renderGeneration) return;
     btnRender.textContent = '▶ Render All';
     btnRender.disabled = false;
     const successful = cachedScenes.filter(Boolean).length;
@@ -630,6 +633,7 @@ function renderAll() {
     
     // Render asynchronously to not block UI
     setTimeout(() => {
+      if (currentRender !== renderGeneration) return;
       try {
         const result = run(sceneCode);
         canvas.width = result.W;
@@ -715,7 +719,7 @@ btnZip.addEventListener('click', async () => {
 });
 
 btnSheet.addEventListener('click', () => {
-  if (cachedScenes.length === 0) return;
+  if (!cachedScenes.some(Boolean)) return;
   
   // Create a massive canvas to stitch them together (max 3 per row)
   const cols = 3;
