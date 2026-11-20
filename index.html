@@ -99,6 +99,8 @@
   .status-ok { color: var(--ok); font-weight: bold; }
   .status-err { color: var(--bad); font-weight: bold; }
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--mut); }
+/* Studio refresh */
+header{gap:16px;padding:10px 16px;flex-wrap:wrap}header h1{font-size:15px}.toolbar{gap:7px;flex-wrap:wrap;justify-content:flex-end}main{grid-template-columns:minmax(320px,42%) minmax(0,1fr);gap:12px;padding:12px}.card{border-radius:12px}.card-header{font-size:11px;letter-spacing:.04em;text-transform:uppercase}.viewer-controls{align-items:center;flex-wrap:wrap}.viewer-canvas-wrapper{position:relative;background-color:#101318;background-image:linear-gradient(45deg,#252830 25%,transparent 25%),linear-gradient(-45deg,#252830 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#252830 75%),linear-gradient(-45deg,transparent 75%,#252830 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}#liveCanvas{image-rendering:pixelated;max-width:none;max-height:none}.scene-card{transition:border-color .15s,transform .15s}.scene-card:hover{border-color:#4b5563;transform:translateY(-1px)}.workspace-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.tool-note{color:var(--mut);font-size:11px}button.action.compact{padding:6px 9px}@media(max-width:950px){main{grid-template-columns:minmax(260px,38%) minmax(0,1fr);padding:8px;gap:8px}}@media(max-width:680px){body{height:auto;min-height:100vh;overflow:auto}header{align-items:flex-start}main{display:flex;flex-direction:column;overflow:visible;min-height:calc(100vh - 110px)}.pane{min-height:480px;overflow:visible}#viewStoryboard,#viewViewer{height:auto;min-height:450px}.viewer-canvas-wrapper{min-height:380px;height:calc(100vh - 250px)}}
 </style>
 </head>
 <body>
@@ -110,9 +112,9 @@
       <button class="tab active" data-target="viewStoryboard">Storyboard</button>
       <button class="tab" data-target="viewViewer">Live Viewer</button>
     </div>
-    <button class="action" id="btnSheet" disabled>🖼️ Save Sheet</button>
-    <button class="action" id="btnZip" disabled>📦 Download ZIP</button>
-    <button class="action primary" id="btnRender">▶ Render All</button>
+    <button class="action compact" id="btnSheet" disabled title="Export all rendered scenes as a contact sheet">▦ Sheet</button>
+    <button class="action compact" id="btnZip" disabled title="Export all scenes as PNG files">⇩ ZIP</button>
+    <button class="action compact" id="btnSourceDownload" title="Download your script">↓ Script</button><button class="action compact" id="btnSourceLoad" title="Open a script file">↑ Open</button><button class="action primary" id="btnRender" title="Render (Ctrl/⌘ + Enter)">▶ Render</button>
   </div>
 </header>
 
@@ -139,7 +141,7 @@
 
     <!-- Tab 2: Live Viewer -->
     <div id="viewViewer">
-      <div class="viewer-controls">
+      <div class="viewer-controls workspace-tools"><button class="action compact" id="zoomOut">−</button><input id="zoomRange" type="range" min="1" max="12" value="2" style="width:120px"><button class="action compact" id="zoomIn">+</button><span id="zoomLabel" class="tool-note">2×</span><button class="action compact" id="btnPng" title="Save selected scene as PNG">PNG</button><button class="action compact" id="btnCopy" title="Copy script to clipboard">Copy code</button><span id="pixelInfo" class="tool-note">Hover image to inspect pixel color</span></div><div class="viewer-controls">
         <select id="sceneSelect" class="action" style="padding: 8px;"></select>
         <button class="action primary" id="btnPlay">▶ Play Scene</button>
       </div>
@@ -543,6 +545,7 @@ line 190 80 256 100 sunc w=1 a=0.3`;
 src.value = demoText;
 
 let cachedScenes = [];
+  let completed=0;
 
 // UI Tab Switching
 document.querySelectorAll('.tab').forEach(tab => {
@@ -633,9 +636,10 @@ function renderAll() {
         }
         
         // Store for export
-        cachedScenes.push({ title, canvas: canvas.toDataURL('image/png') });
+        cachedScenes[index] = { title, canvas: canvas.toDataURL('image/png') };
+        completed++;
         
-        if (cachedScenes.length === scenes.length) {
+        if (completed === scenes.length) {
           btnRender.textContent = '▶ Render All';
           btnRender.disabled = false;
           btnZip.disabled = false;
@@ -746,5 +750,15 @@ window.addEventListener('DOMContentLoaded', () => {
   setTimeout(renderAll, 100);
 });
 </script>
-</body>
+<script>
+(function(){
+const key='pixel-brush-studio-script-v2',range=document.getElementById('zoomRange'),label=document.getElementById('zoomLabel'),info=document.getElementById('pixelInfo');
+function zoom(){const z=Number(range.value)||1;label.textContent=z+'×';liveCanvas.style.width=(liveCanvas.width*z)+'px';liveCanvas.style.height=(liveCanvas.height*z)+'px'}range.addEventListener('input',zoom);document.getElementById('zoomOut').onclick=()=>{range.value=Math.max(1,+range.value-1);zoom()};document.getElementById('zoomIn').onclick=()=>{range.value=Math.min(12,+range.value+1);zoom()};
+liveCanvas.addEventListener('mousemove',e=>{const r=liveCanvas.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)*liveCanvas.width/r.width),y=Math.floor((e.clientY-r.top)*liveCanvas.height/r.height);if(x<0||y<0||x>=liveCanvas.width||y>=liveCanvas.height)return;const d=liveCanvas.getContext('2d').getImageData(x,y,1,1).data;info.textContent='x:'+x+' y:'+y+' · #'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase()});liveCanvas.addEventListener('mouseleave',()=>info.textContent='Hover image to inspect pixel color');
+document.getElementById('btnPng').onclick=()=>{const a=document.createElement('a');a.href=liveCanvas.toDataURL('image/png');a.download='pixel-brush-scene.png';a.click()};document.getElementById('btnCopy').onclick=async()=>{try{await navigator.clipboard.writeText(src.value);info.textContent='Script copied'}catch(e){info.textContent='Clipboard access denied'}};
+document.getElementById('btnSourceDownload').onclick=()=>{const u=URL.createObjectURL(new Blob([src.value],{type:'text/plain'})),a=document.createElement('a');a.href=u;a.download='pixel-brush-script.txt';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
+document.getElementById('btnSourceLoad').onclick=()=>{const i=document.createElement('input');i.type='file';i.accept='.txt,.pb,.pixelbrush';i.onchange=()=>{const f=i.files&&i.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{src.value=String(rd.result||'');try{localStorage.setItem(key,src.value)}catch(e){}renderAll()};rd.readAsText(f)};i.click()};
+let timer;src.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>{try{localStorage.setItem(key,src.value)}catch(e){}},350)});try{const saved=localStorage.getItem(key);if(saved&&saved!==src.value&&confirm('Restore your previous Pixel Brush script?'))src.value=saved}catch(e){}document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();renderAll()}});sceneSelect.addEventListener('change',()=>setTimeout(zoom,30));setTimeout(zoom,120);
+})();
+</script></body>
 </html>
