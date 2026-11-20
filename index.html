@@ -1,153 +1,141 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pixel Brush Viewer</title>
+<title>Pixel Brush Studio</title>
 <style>
-:root{--bg:#f4f5f7;--panel:#fff;--fg:#14171f;--mut:#667085;--line:#d5d9e0;--ok:#127a3d;--bad:#b42318;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0e14;--panel:#141923;--fg:#e6e9f0;--mut:#8b94a7;--line:#262d3b;--ok:#4ade80;--bad:#f87171}}
-:root[data-theme="dark"]{--bg:#0b0e14;--panel:#141923;--fg:#e6e9f0;--mut:#8b94a7;--line:#262d3b;--ok:#4ade80;--bad:#f87171}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-header{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
-h1{font-size:16px;margin:0}header span{color:var(--mut);font-size:12px}
-main{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:14px;padding:14px 18px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
-textarea{width:100%;height:62vh;min-height:320px;resize:vertical;background:transparent;color:var(--fg);border:0;outline:0;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto}
-canvas{display:block;width:100%;height:auto;max-width:100%;margin:0 auto;image-rendering:pixelated;border-radius:6px;background:#000}
-.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px}
-button{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:5px 11px;font:inherit;cursor:pointer}
-select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:4px 8px;font:inherit;cursor:pointer}
-.pick{color:var(--mut);font-size:12px;display:flex;gap:6px;align-items:center;margin-left:auto}
-#st{font-weight:600}.ok{color:var(--ok)}.bad{color:var(--bad)}
-pre{margin:0;font:11px/1.25 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;overflow-x:auto;color:var(--mut);max-height:300px;overflow-y:auto}
-</style></head><body>
-<header><h1>Pixel Brush Viewer</h1><span>paste an agent’s command block, it renders live · SIZE w h sets the canvas · bad lines are skipped, never fatal</span></header>
+  :root {
+    --bg: #0f1115;
+    --panel: #181a20;
+    --border: #2a2d36;
+    --fg: #e2e8f0;
+    --mut: #94a3b8;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --ok: #10b981;
+    --bad: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 system-ui, -apple-system, sans-serif;
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+  }
+  header h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: 0.5px; }
+  .toolbar { display: flex; gap: 12px; }
+  button {
+    background: var(--border); color: var(--fg); border: none; padding: 6px 12px;
+    border-radius: 6px; cursor: pointer; font-weight: 500; transition: 0.2s;
+  }
+  button:hover { background: #3a3f4c; }
+  button.primary { background: var(--accent); color: white; }
+  button.primary:hover { background: var(--accent-hover); }
+  
+  main {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px;
+    flex: 1; min-height: 0;
+  }
+  .pane { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .card-header {
+    padding: 8px 12px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--mut); display: flex; justify-content: space-between; align-items: center;
+  }
+  
+  textarea {
+    flex: 1; width: 100%; min-height: 200px; background: transparent; color: var(--fg);
+    border: none; outline: none; font: 13px/1.6 ui-monospace, Menlo, monospace;
+    padding: 16px; resize: none; white-space: pre;
+  }
+
+  /* Storyboard Grid */
+  #storyboard {
+    flex: 1; overflow-y: auto; display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px; padding-bottom: 20px; align-content: start;
+  }
+  .scene-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.2s;
+  }
+  .scene-card:hover { transform: translateY(-2px); border-color: #4a5568; }
+  .scene-header {
+    padding: 10px 14px; font-weight: 600; font-size: 13px;
+    background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .scene-badge { font-size: 10px; background: var(--border); padding: 2px 6px; border-radius: 4px; color: var(--mut); }
+  .canvas-container {
+    width: 100%; aspect-ratio: 1/1; background: #000; position: relative;
+    display: flex; justify-content: center; align-items: center;
+  }
+  canvas {
+    width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;
+  }
+  .scene-footer { padding: 8px 12px; font-size: 11px; color: var(--mut); display: flex; justify-content: space-between; border-top: 1px solid var(--border); }
+  
+  /* Status Colors */
+  .status-ok { color: var(--ok); }
+  .status-err { color: var(--bad); }
+  
+  /* Empty State */
+  .empty-state {
+    grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--mut);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pixel Brush Studio</h1>
+  <div class="toolbar">
+    <button id="btnStoryboard" class="primary">▶ Generate Storyboard</button>
+  </div>
+</header>
+
 <main>
-<div class="card"><textarea id="src" spellcheck="false"></textarea></div>
-<div class="card"><canvas id="cv" width="128" height="128"></canvas>
-<div class="bar"><span id="st"></span><button id="cp">Copy report for agent</button>
-<label class="pick">canvas
-<select id="sz">
-<option>128</option><option>256</option><option>512</option><option>720</option><option>768</option><option>1280</option>
-</select></label></div>
-<pre id="rep"></pre></div>
+  <!-- Left Pane: Editor -->
+  <div class="pane">
+    <div class="card" style="flex:1;">
+      <div class="card-header">
+        <span>Source Code</span>
+        <span>Multi-scene supported (Separate with blank lines)</span>
+      </div>
+      <textarea id="src" spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <!-- Right Pane: Storyboard Output -->
+  <div class="pane">
+    <div id="storyboard">
+      <!-- Cards will be injected here -->
+    </div>
+  </div>
 </main>
-<script type="text/plain" id="demo"># ═══ LIGHTHOUSE IN A BREAKING STORM ═══
-# Plan: lone lighthouse on a right-hand headland, storm clouds torn open at upper left
-# so the moon leaks through. Cold moon light from upper-left, warm lamp = focal point.
-# Layers: sky > stars > moon > clouds > beam > sea > reflection > headland > tower
-#         > birds > foam > foreground crag > lamp glow > vignette
-SIZE 128 128
-seed 7
-PALETTE
-  void #060913  deep #0E1736  dusk #1F3563  haze #41659B
-  moon #EAF2FF  moonglow #22305A  cloud0 #1B2748  cloud1 #2F4474  cloud2 #6F8BBE
-  sea0 #08162E  sea1 #123A66  sea2 #2A6A93  foam #D2E9F4
-  rock0 #07080E  rock1 #141827  rock2 #262C43  rock3 #424B6B
-  lamp #FFEDB0  warm #FFB347  beamc #8C5F20  glow #5A3A12  wall #DAD5C8  red #B5303A
 
-# ---- sky: one banded dither ramp, then stars ----
-paint in 0 0 128 80 with ramp(y/80,void,deep,dusk,haze) dither
-for i in 0..90
-  let sx = rand(0,128)
-  let sy = rand(0,50)
-  plot sx sy shade(moon,rand(-0.8,-0.2))
-end
-for i in 0..9
-  plot rand(0,128) rand(0,40) moon
-end
-
-# ---- moon: lit sphere, craters, wide cold halo ----
-paint where dist(x,y,30,23)<9 with mix(moon,#8FA6D0,dist(x,y,27,20)/15) dither
-paint where dist(x,y,34,21)<1.8 with #B3C4E4
-paint where dist(x,y,26,27)<2.4 with #B3C4E4
-paint where dist(x,y,30,23)<36 with moonglow a=(1-dist(x,y,30,23)/36)^1.5*0.9 blend=add dither
-
-# ---- storm clouds, torn open around the moon ----
-paint in 0 0 128 78 where fbm(x*0.03,y*0.08+4,4) > 0.41+abs(y-40)/50*0.3+smooth(34,9,dist(x,y,30,23))*0.4 with ramp(clamp((fbm(x*0.03+7,y*0.08,3)-0.35)*2.2+smooth(70,0,dist(x,y,30,23))*0.6,0,1),cloud0,cloud1,cloud2) dither
-
-# ---- lamp beam sweeping left through the clouds ----
-paint where x<94 and abs(y-(28+(96-x)*0.13))<1.2+(96-x)*0.12 with beamc a=(1-(96-x)/120)*0.85 blend=add dither
-
-# ---- sea: depth ramp, horizon haze, wave crests, moon glitter ----
-paint in 0 78 128 50 with ramp((y-78)/50,sea2,sea1,sea0) dither
-paint in 0 72 128 12 with haze a=(1-abs(y-78)/6)*0.5 dither
-paint in 0 79 128 49 where sin(y*(1.3+(y-78)*0.02)+noise(x*0.06,y*0.25)*10)>0.86-(y-78)*0.002 with mix(sea2,foam,0.25+(y-78)/150)
-paint in 0 80 128 48 where abs(x-30+(noise(x*0.15,y*0.4)-0.5)*14)<3+(y-80)*0.05 and sin(y*1.9+noise(x*0.1,y*0.3)*6)>-0.1 with moon a=0.75 dither
-
-# ---- headland: lit crest fading to black, noisy surface, cracks ----
-paint where y>128-58*smooth(30,92,x)+noise(x*0.12,3)*5 with ramp(clamp((y-(128-58*smooth(30,92,x)))/30+(fbm(x*0.1,y*0.1,3)-0.5)*0.8,0,1),rock3,rock2,rock1,rock0) dither
-paint where y>128-58*smooth(30,92,x)+noise(x*0.12,3)*5+3 and noise(x*0.35,y*0.6+9)>0.7 with rock0 a=0.8 dither
-paint where y>128-58*smooth(30,92,x)+noise(x*0.12,3)*5+2 and fbm(x*0.25,y*0.3+3,3)>0.6 with rock3 a=0.5 dither
-
-# ---- tower: tapered body, lit left / dark right, red bands ----
-paint where abs(x-96)<3.8+(y-36)*0.085 and y>=36 and y<76 with shade(wall,(94-x)/6*0.5)
-paint where abs(x-96)<3.8+(y-36)*0.085 and y>=36 and y<76 and floor((y-36)/9)%2==1 with shade(red,(94-x)/6*0.45)
-paint in 95 49 3 4 with lamp
-paint in 93 69 6 7 with rock1
-paint in 90 33 13 2 with rock1
-paint in 90 30 13 1 with rock2
-paint in 90 31 13 2 where x%2==0 with rock2
-paint in 92 24 9 7 with lamp
-paint in 95 26 3 4 with shade(lamp,0.8)
-paint in 92 24 1 7 with rock1
-paint in 100 24 1 7 with rock1
-paint in 96 24 1 7 with rock1
-poly 90,24 96,15 102,24 rock1
-line 90 24 96 15 rock3
-line 96 12 96 15 rock2
-
-# ---- birds crossing the beam (a def of my own, just two strokes) ----
-def bird x y s
-  line x-s y-s*0.6 x y rock0
-  line x y x+s y-s*0.6 rock0
-end
-bird 70 31 3
-bird 62 37 2
-bird 77 26 2
-bird 55 34 2
-
-# ---- surf along the waterline + spray plumes ----
-for fx in 34..92
-  let ty = 128-58*smooth(30,92,fx)+noise(fx*0.12,3)*5
-  if rand()<0.75
-    plot fx ty+rand(-1,2) foam
-  end
-  if rand()<0.3
-    plot fx-rand(1,4) ty+rand(0,3) shade(foam,-0.4)
-  end
-end
-for i in 0..8
-  let sx = rand(40,84)
-  let sy = 128-58*smooth(30,92,sx)+noise(sx*0.12,3)*5
-  line sx sy sx-rand(0,3) sy-rand(2,5) foam w=2 w2=0
-end
-
-# ---- foreground crag, bottom-left, moon-rimmed ----
-paint where y>102+noise(x*0.09,11)*9+smooth(0,38,x)*26 with ramp((y-100)/22+(fbm(x*0.2,y*0.2,2)-0.5)*0.6,rock3,rock1,rock0) dither
-
-# ---- lamp glow: warm light bleeding onto cloud, tower and rock ----
-paint where dist(x,y,96,28)<32 with glow a=(1-dist(x,y,96,28)/32)^2 blend=add dither
-paint where dist(x,y,96,28)<9 with #7A5A20 a=(1-dist(x,y,96,28)/9) blend=add dither
-
-# ---- vignette ----
-paint where dist(x,y,64,60)>46 with void a=((dist(x,y,64,60)-46)/60)*0.8 dither
-</script>
+<!-- The Pixel Brush Engine (Unmodified logic, isolated) -->
 <script>
 const BAY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5],RET={};
 let W=128,H=128;
 let img=new Float32Array(W*H*3),P,V,DEF,ERR,NC,SEED,rs,D=false,T=.5,DEPTH,DL,CACHE=new Map(),FN={},SPR={};
-const cv=document.getElementById('cv'),cx=cv.getContext('2d'),src=document.getElementById('src'),st=document.getElementById('st'),rep=document.getElementById('rep'),sz=document.getElementById('sz');
-function setSize(w,h){w=Math.round(w);h=Math.round(h);
-if(!(w>=8&&w<=2048))w=128;if(!(h>=8&&h<=2048))h=128;
-W=w;H=h;cv.width=W;cv.height=H;cx.imageSmoothingEnabled=false;
-img=new Float32Array(W*H*3);if(V){V.W=W;V.H=H}}
+
+function setSize(w,h){
+  w=Math.round(w);h=Math.round(h);
+  if(!(w>=8&&w<=2048))w=128;if(!(h>=8&&h<=2048))h=128;
+  W=w;H=h;img=new Float32Array(W*H*3);
+}
 function rng(){rs=rs+0x6D2B79F5|0;let t=Math.imul(rs^rs>>>15,1|rs);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
 function hash(a,b){let n=(Math.imul(a,374761393)+Math.imul(b,668265263)+Math.imul(SEED,1597334677))|0;n=Math.imul(n^n>>>13,1274126177);return((n^n>>>16)&65535)/65535}
-function noise(x,y){const ix=Math.floor(x),iy=Math.floor(y);let fx=x-ix,fy=y-iy;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
-const a=hash(ix,iy),b=hash(ix+1,iy),c=hash(ix,iy+1),d=hash(ix+1,iy+1);return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy}
+function noise(x,y){const ix=Math.floor(x),iy=Math.floor(y);let fx=x-ix,fy=y-iy;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);const a=hash(ix,iy),b=hash(ix+1,iy),c=hash(ix,iy+1),d=hash(ix+1,iy+1);return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy}
 function fbm(x,y,o=4){let v=0,t=0,a=.5,f=1;for(let i=0;i<o;i++){v+=a*noise(x*f+i*17.3,y*f+i*9.1);t+=a;a*=.5;f*=2}return v/t}
 const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lc=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
@@ -188,12 +176,9 @@ throw Error('unexpected "'+k+'"')};
 const e=or();if(p<t.length)throw Error('unexpected "'+t[p]+'"');CACHE.set(src,e);return e}
 const ev=s=>compile(s)();
 function col(s){D=false;V.x=V.y=0;const c=ev(s);if(!Array.isArray(c))throw Error('color expected: '+s);return c}
-function sp(s,sep){const r=[];let d=0,b='';const cm=sep===',';for(const ch of s){if(ch==='(')d++;else if(ch===')')d--;
-if(d===0&&(cm?ch===',':/\s/.test(ch))){if(b!==''||cm)r.push(b);b=''}else b+=ch}if(b!==''||cm)r.push(b);return r}
+function sp(s,sep){const r=[];let d=0,b='';const cm=sep===',';for(const ch of s){if(ch==='(')d++;else if(ch===')')d--;if(d===0&&(cm?ch===',':/\s/.test(ch))){if(b!==''||cm)r.push(b);b=''}else b+=ch}if(b!==''||cm)r.push(b);return r}
 function put(x,y,c,a=1,b='replace'){x=Math.round(x);y=Math.round(y);if(x<0||y<0||x>=W||y>=H)return;const i=(y*W+x)*3;
-for(let k=0;k<3;k++){const p=img[i+k],q=c[k];let n;
-if(b==='add')n=p+q*a;else if(b==='mul')n=p+(p*q/255-p)*a;else if(b==='screen')n=p+(255-(255-p)*(255-q)/255-p)*a;else n=p+(q-p)*a;
-img[i+k]=n<0?0:n>255?255:n}}
+for(let k=0;k<3;k++){const p=img[i+k],q=c[k];let n;if(b==='add')n=p+q*a;else if(b==='mul')n=p+(p*q/255-p)*a;else if(b==='screen')n=p+(255-(255-p)*(255-q)/255-p)*a;else n=p+(q-p)*a;img[i+k]=n<0?0:n>255?255:n}}
 let SO={a:1,d:false,b:'replace'};
 function opts(a){SO={a:1,d:false,b:'replace'};return a.filter((s,i)=>{if(i===0)return true;if(/^dither$/i.test(s)){SO.d=true;return false}const m=s.match(/^(a|blend)=(.+)$/i);if(m){if(m[1].toLowerCase()==='a')SO.a=ev(m[2]);else SO.b=m[2];return false}return true})}
 function flat(a){return a.flatMap(s=>{const q=sp(s,',');return q.length>1&&!/^[A-Za-z_]\w*=/.test(s)?q:[s]})}
@@ -253,27 +238,232 @@ else if(k==='fn'){const m=t.match(/^fn\s+(\w+)\s*\(([^)]*)\)\s*=\s*(.+)$/i);if(!
 else if(DEF[k]){const[ps,body]=DEF[k];if(DEPTH>=16)throw Error('recursion depth limit');const args=sp(t.slice(k.length).trim()).map(ev);
 const old=V;V=Object.assign({},old);ps.forEach((p,i)=>V[p]=args[i]);DEPTH++;try{exec(body)}catch(e){if(e!==RET)throw e}finally{DEPTH--;V=old}}
 else throw Error('unknown command "'+k+'"')}
+
 function run(srcText){
-if(!/^\s*SIZE\s+\S+\s+\S+\s*$/im.test(srcText))setSize(128,128);
-img.fill(0);P={};V={pi:Math.PI,W,H};DEF={};FN={};SPR={};ERR=[];NC=0;SEED=1;rs=1;DEPTH=0;
-DL=performance.now()+Math.min(15000,Math.max(2500,2500*W*H/16384));
-const L=srcText.split('\n').map((l,i)=>[i+1,/^\s*```/.test(l)?'':l.replace(/(^|\s)#(?![0-9a-fA-F]{6}\b).*$/,'').replace(/\s+$/,'')]);
-try{exec(parse(L,0,true)[0])}catch(e){if(e!==RET)ERR.push('ERR '+e.message)}}
-let report='';
-function draw(){const t0=performance.now();run(src.value);const ms=Math.round(performance.now()-t0);
-cv.width=W;cv.height=H;const id=cx.createImageData(W,H);let nb=0;
-for(let i=0;i<W*H;i++){const r=img[i*3],g=img[i*3+1],b=img[i*3+2];id.data.set([r,g,b,255],i*4);if(r+g+b>0)nb++}
-cx.putImageData(id,0,0);const cov=Math.round(nb/(W*H)*100),ch=' .:-=+*#%@';let th='';
-const stp=Math.max(1,Math.floor(Math.min(W,H)/32));
-for(let y=0;y<32;y++){for(let x=0;x<32;x++){const px=Math.min(W-1,x*stp),py=Math.min(H-1,y*stp);const i=(py*W+px)*3,l=(img[i]*.3+img[i+1]*.59+img[i+2]*.11)/256;th+=ch[Math.min(9,Math.floor(l*10))]}th+='\n'}
-report=(ERR.length?'ERRORS ('+ERR.length+')':'OK')+' — '+NC+' commands, '+ERR.length+' errors, coverage '+cov+'% non-black, '+ms+' ms — '+W+'x'+H+'\n'+ERR.join('\n')+(ERR.length?'\n':'')+'Thumbnail 32x32 (dark → light):\n'+th;
-st.textContent=(ERR.length?ERR.length+' error'+(ERR.length>1?'s':''):'OK')+' · '+NC+' cmds · '+ms+' ms · '+W+'x'+H;st.className=ERR.length?'bad':'ok';rep.textContent=report;
-const mm=src.value.match(/^\s*SIZE\s+(\d+)\s+(\d+)\s*$/im);if(mm&&mm[1]===mm[2]&&[...sz.options].some(o=>o.value===mm[1]))sz.value=mm[1];else if(!mm)sz.value='128'}
-let tm;src.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(draw,120)});
-sz.addEventListener('change',()=>{const v=sz.value,line='SIZE '+v+' '+v,s=src.value;
-src.value=/^\s*SIZE\s+\S+\s+\S+\s*$/im.test(s)?s.replace(/^\s*SIZE\s+\S+\s+\S+\s*$/im,line):line+'\n'+s;draw()});
-document.getElementById('cp').onclick=e=>{const b=e.target,done=()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy report for agent',1200)};
-const fb=()=>{const t=document.createElement('textarea');t.value=report;document.body.appendChild(t);t.select();try{document.execCommand('copy')}catch(_){}t.remove();done()};
-try{navigator.clipboard.writeText(report).then(done,fb)}catch(_){fb()}};
-src.value=document.getElementById('demo').textContent.trim();draw();
-</script></body></html>
+  if(!/^\s*SIZE\s+\S+\s+\S+\s*$/im.test(srcText))setSize(128,128);
+  img.fill(0);P={};V={pi:Math.PI,W,H};DEF={};FN={};SPR={};ERR=[];NC=0;SEED=1;rs=1;DEPTH=0;
+  DL=performance.now()+Math.min(15000,Math.max(2500,2500*W*H/16384));
+  const L=srcText.split('\n').map((l,i)=>[i+1,/^\s*```/.test(l)?'':l.replace(/(^|\s)#(?![0-9a-fA-F]{6}\b).*$/,'').replace(/\s+$/,'')]);
+  try{exec(parse(L,0,true)[0])}catch(e){if(e!==RET)ERR.push('ERR '+e.message)}
+  return { img, W, H, ERR, NC };
+}
+</script>
+
+<!-- UI Logic -->
+<script>
+const src = document.getElementById('src');
+const board = document.getElementById('storyboard');
+const btn = document.getElementById('btnStoryboard');
+
+const demoText = `# ═══ SCENE 1: The Long Approach ═══
+# A lone keeper walks the jetty toward the lighthouse at last light.
+seed 11
+SIZE 256 256
+PALETTE
+ sky0 #1A2238  sky1 #4A3B52  sky2 #8A5A52  sky3 #C97B4A
+ sunc #FFD9A0  dim  #6A3A18
+ sea0 #14202E  sea1 #1E3044  sea2 #2E4A5E  foam #6A8896
+ jet0 #0E1418  jet1 #1A242A  jet2 #2A3640
+ lamp #FFE8B0  ink #06090C  fig #0A1016
+paint in 0 0 256 150 with ramp(clamp(y*0.0067,0,1),sky0,sky1,sky2,sky3)
+paint in 150 60 100 100 where dist(x,y,196,96)<70 with dim a=(1-dist(x,y,196,96)*0.014)^2 blend=add
+paint in 180 80 32 32 where dist(x,y,196,96)<14 with mix(sunc,sky3,dist(x,y,196,96)*0.07)
+paint in 0 140 256 116 with ramp(clamp((y-140)*0.009,0,1),sea2,sea1,sea0)
+line 196 96 198 140 ink w=10
+line 194 98 196 138 mix(sea2,sky3,0.3) w=6
+plot 196 90 lamp r=3
+paint in 0 200 256 56 with jet1
+line 78 214 74 232 ink w=6
+line 78 214 74 232 fig w=3
+line 86 214 90 232 ink w=6
+line 86 214 90 232 fig w=3
+line 80 190 82 214 ink w=10
+line 80 190 82 214 fig w=6
+plot 80 182 fig r=4
+
+# ═══ SCENE 2: The Lamp Room ═══
+# Inside the lamp room. The keeper winds the clockwork before dawn.
+seed 22
+SIZE 256 256
+PALETTE
+ room0 #0A0C10  room1 #12181E  room2 #1C2630
+ win0 #0A1420   win1 #16283A
+ brass0 #4A3218  brass1 #8A5A2A  brass2 #C89050  brass3 #F0C878
+ glass #F4E4B0  dim #6A3A18  ink #05070A
+ skin0 #6A4A38  skin1 #A87858  skin2 #D8A878  acc #C84030
+paint in 0 0 256 256 with ramp(clamp(y*0.004,0,1),room0,room1,room2)
+paint in 30 70 90 90 where dist(x,y,72,108)<44 with dim a=(1-dist(x,y,72,108)*0.022)^2 blend=add
+paint in 40 76 64 64 where dist(x,y,72,108)<30 with mix(glass,brass3,dist(x,y,72,108)*0.03)
+paint in 40 76 64 64 where abs(dist(x,y,72,108)-22)<3 with brass2
+line 120 140 122 190 ink w=14
+line 120 140 122 190 skin1 w=10
+line 118 150 150 162 ink w=8
+line 118 150 150 162 skin1 w=5
+plot 152 162 brass3 r=4
+line 114 165 128 167 acc w=4
+plot 120 130 skin1 r=6
+
+# ═══ SCENE 3: The Storm Arrives ═══
+# The gale hits. Keeper stands at the cliff rail, beam sweeping overhead.
+seed 33
+SIZE 256 256
+PALETTE
+ sky0 #06080C  sky1 #0C1218  sky2 #141E28
+ beam0 #2A3A48  beam1 #6A8AA0  beam2 #C8E0E8
+ sea0 #080E14  sea1 #101A24  sea2 #1A2A36  foam #4A6A7A
+ cliff0 #0A0E12  cliff1 #161E24  cliff2 #242E36
+ ink #04060A  fig #080C10  acc #8A2A1A  rail #3A2A1A
+paint in 0 0 256 140 with ramp(clamp(y*0.007,0,1),sky0,sky1,sky2)
+paint in 100 0 156 160 where x>100 and y<150 and x>180-y*1.1 and x<230-y*0.4 with beam0 a=0.5 blend=add
+paint in 0 140 256 116 with ramp(clamp((y-140)*0.01,0,1),sea2,sea1,sea0)
+for i in 0..40
+  line i*6 (i*13)%200 i*6-6 (i*13)%200+18 beam0 w=1 a=0.4
+end
+paint in 0 190 256 66 with cliff1
+line 20 190 230 190 rail w=2
+line 90 190 90 215 ink w=6
+line 90 190 90 215 fig w=3
+line 92 160 94 190 ink w=12
+line 92 160 94 190 fig w=8
+plot 94 150 fig r=5
+line 90 172 108 170 acc w=4
+
+# ═══ SCENE 4: The Dark Hour ═══
+# The lamp is out. First grey light. Keeper looks up at the cold glass.
+seed 44
+SIZE 256 256
+PALETTE
+ sky0 #1E2630  sky1 #3A4450  sky2 #6A6A72  sky3 #A89888
+ dawn #C8A878  dim #4A3A28
+ sea0 #141C24  sea1 #1E2A34  sea2 #2E3E4A  foam #5A6E7A
+ tower0 #1A2026  tower1 #2A343C  tower2 #3E4A54
+ dead #0C1014  glass #3A4A56  ink #06080A  fig #0A0E12  acc #6A3A2A
+paint in 0 0 256 150 with ramp(clamp(y*0.0067,0,1),sky0,sky1,sky2,sky3)
+paint in 0 150 256 106 with ramp(clamp((y-150)*0.009,0,1),sea2,sea1,sea0)
+line 78 140 80 196 ink w=18
+line 78 140 80 196 tower1 w=12
+paint in 62 118 40 40 where dist(x,y,80,132)<16 with ramp(clamp((y-118)*0.03,0,1),dead,glass)
+paint in 0 190 256 66 with sea1
+line 30 190 230 190 tower0 w=2
+line 130 155 132 190 ink w=12
+line 130 155 132 190 fig w=8
+plot 132 145 fig r=5
+line 120 170 140 168 acc w=4
+
+# ═══ SCENE 5: First Light ═══
+# Dawn breaks. The keeper turns from the dead lamp to the rising sun.
+seed 55
+SIZE 256 256
+PALETTE
+ sky0 #2A2A48  sky1 #6A4A5A  sky2 #B8704A  sky3 #E8A860  sky4 #F8D890
+ sunc #FFF0C0  dim #7A4418
+ sea0 #1A2430  sea1 #2A3A48  sea2 #4A5A68  glitter #E8D0A0
+ tower0 #1A2026  tower1 #2A343C
+ ink #06080A  fig #0C1016  skin0 #6A4A38  skin1 #B07850  skin2 #E0A870
+ acc #C84030  rail #4A3420
+paint in 0 0 256 160 with ramp(clamp(y*0.0063,0,1),sky0,sky1,sky2,sky3,sky4)
+paint in 160 80 96 96 where dist(x,y,208,128)<60 with dim a=(1-dist(x,y,208,128)*0.0166)^2 blend=add
+paint in 186 106 44 44 where dist(x,y,208,128)<22 with mix(sunc,sky4,dist(x,y,208,128)*0.045)
+paint in 0 160 256 96 with ramp(clamp((y-160)*0.01,0,1),sea2,sea1,sea0)
+line 60 130 62 200 ink w=14
+line 60 130 62 200 tower1 w=10
+paint in 0 190 256 66 with sea1
+line 20 190 230 190 rail w=2
+line 118 155 120 190 ink w=14
+line 118 155 120 190 fig w=10
+plot 118 145 fig r=6
+line 110 165 128 163 acc w=4`;
+
+src.value = demoText;
+
+function generateStoryboard() {
+  const text = src.value;
+  // Split by blank lines (2 or more newlines)
+  const scenes = text.split(/\n\s*\n/).filter(s => s.trim().length > 0 && s.includes('SIZE'));
+  
+  board.innerHTML = '';
+  
+  if (scenes.length === 0) {
+    board.innerHTML = '<div class="empty-state">No scenes found. Make sure your code contains "SIZE" and is separated by blank lines.</div>';
+    return;
+  }
+
+  scenes.forEach((sceneCode, index) => {
+    // Attempt to find a title comment
+    let title = `Scene ${index + 1}`;
+    const titleMatch = sceneCode.match(/#\s*(?:═══)?\s*(.+?)\s*(?:═══)?$/m);
+    if (titleMatch && titleMatch[1]) {
+      title = titleMatch[1].trim();
+    }
+
+    const card = document.createElement('div');
+    card.className = 'scene-card';
+    
+    const header = document.createElement('div');
+    header.className = 'scene-header';
+    header.innerHTML = `<span>${title}</span><span class="scene-badge">#${index + 1}</span>`;
+    
+    const canvasContainer = document.createElement('div');
+    canvasContainer.className = 'canvas-container';
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256; // default, will be updated
+    
+    const footer = document.createElement('div');
+    footer.className = 'scene-footer';
+    footer.innerHTML = `<span class="status-text">Rendering...</span><span class="meta-text"></span>`;
+    
+    canvasContainer.appendChild(canvas);
+    card.appendChild(header);
+    card.appendChild(canvasContainer);
+    card.appendChild(footer);
+    board.appendChild(card);
+    
+    // Render the scene
+    setTimeout(() => {
+      try {
+        const result = run(sceneCode);
+        
+        canvas.width = result.W;
+        canvas.height = result.H;
+        const ctx = canvas.getContext('2d');
+        const id = ctx.createImageData(result.W, result.H);
+        
+        for (let i = 0; i < result.W * result.H; i++) {
+          id.data.set([
+            result.img[i*3], 
+            result.img[i*3+1], 
+            result.img[i*3+2], 
+            255
+          ], i * 4);
+        }
+        
+        ctx.putImageData(id, 0, 0);
+        
+        const status = footer.querySelector('.status-text');
+        const meta = footer.querySelector('.meta-text');
+        
+        if (result.ERR.length > 0) {
+          status.innerHTML = `<span class="status-err">${result.ERR.length} errors</span>`;
+          meta.textContent = result.ERR[0].substring(0, 30) + '...';
+        } else {
+          status.innerHTML = `<span class="status-ok">Success</span>`;
+          meta.textContent = `${result.W}x${result.H}`;
+        }
+      } catch (e) {
+        footer.querySelector('.status-text').innerHTML = `<span class="status-err">Crash</span>`;
+        footer.querySelector('.meta-text').textContent = e.message;
+      }
+    }, 10);
+  });
+}
+
+btn.addEventListener('click', generateStoryboard);
+
+// Generate on load
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(generateStoryboard, 100);
+});
+</script>
+</body>
+</html>
