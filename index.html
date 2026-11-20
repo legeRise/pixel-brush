@@ -104,12 +104,56 @@
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--mut); }
 /* Studio refresh */
 header{gap:16px;padding:10px 16px;flex-wrap:wrap}header h1{font-size:15px}.toolbar{gap:7px;flex-wrap:wrap;justify-content:flex-end}main{grid-template-columns:minmax(320px,42%) minmax(0,1fr);gap:12px;padding:12px}.card{border-radius:12px}.card-header{font-size:11px;letter-spacing:.04em;text-transform:uppercase}.viewer-controls{align-items:center;flex-wrap:wrap}.viewer-canvas-wrapper{position:relative;background-color:#101318;background-image:linear-gradient(45deg,#252830 25%,transparent 25%),linear-gradient(-45deg,#252830 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#252830 75%),linear-gradient(-45deg,transparent 75%,#252830 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}#liveCanvas{image-rendering:pixelated;max-width:none;max-height:none}.viewer-canvas-wrapper{overflow:auto}.scene-card{transition:border-color .15s,transform .15s}.scene-card:hover{border-color:#4b5563;transform:translateY(-1px)}.workspace-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.tool-note{color:var(--mut);font-size:11px}button.action.compact{padding:6px 9px}@media(max-width:950px){main{grid-template-columns:minmax(260px,38%) minmax(0,1fr);padding:8px;gap:8px}}@media(max-width:680px){body{height:auto;min-height:100vh;overflow:auto}header{align-items:flex-start}main{display:flex;flex-direction:column;overflow:visible;min-height:calc(100vh - 110px)}.pane{min-height:480px;overflow:visible}#viewStoryboard,#viewViewer{height:auto;min-height:450px}.viewer-canvas-wrapper{min-height:380px;height:calc(100vh - 250px)}}
+
+/* Pixel Brush workspace redesign */
+:root{--bg:#101216;--panel:#171a1f;--border:#282d34;--fg:#e8e9eb;--mut:#89919c;--accent:#d8a45c;--accent-hover:#e8b56b;--ok:#6fce98;--bad:#e27c79}
+body{background:#101216;color:var(--fg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
+header{height:64px;min-height:64px;padding:0 22px;background:#15171b;border-bottom:1px solid #262a30;flex-wrap:nowrap;gap:24px}
+header h1{display:flex;align-items:center;gap:11px;font-size:14px;letter-spacing:.01em;font-weight:650;color:#f3f2ee}
+header h1:before{content:"";width:25px;height:25px;display:inline-block;border-radius:7px;background:linear-gradient(135deg,#f1bf75 0 45%,#a46d37 45% 60%,#4e7b66 60%);box-shadow:0 0 18px #d8a45c25}
+.toolbar{gap:7px;flex-wrap:nowrap}
+.tabs{background:#101216;border-color:#2a2d33;border-radius:9px;padding:3px}
+.tab{font-size:12px;padding:7px 13px;color:#858c96}
+.tab.active{background:#2a2d33;color:#f4f1ea;box-shadow:0 1px 3px #0004}
+button.action{background:#24282e;border:1px solid #30343b;border-radius:8px;color:#cbd0d5;padding:7px 11px;font-size:12px}
+button.action:hover{background:#30353c;border-color:#444b54}
+button.primary{background:#d4a15d!important;color:#191714!important;border-color:#d4a15d!important;font-weight:700}
+button.primary:hover{background:#e5b16e!important}
+main{grid-template-columns:minmax(350px,43%) minmax(0,1fr);gap:15px;padding:15px 17px 17px}
+.pane{gap:0}
+.pane:first-child .card{border-radius:13px;background:#171a1f;border-color:#292e35}
+.card{border-radius:13px;background:#171a1f;border-color:#292e35;box-shadow:0 10px 32px #0001}
+.card-header{padding:12px 15px;background:#1c1f24;color:#d7dbe0;border-bottom-color:#2a2e35;font-size:11px;letter-spacing:.055em}
+.card-header span:first-child{font-weight:700;color:#e6e5e1}
+#renderSummary{font-size:11px;color:#8e969f;letter-spacing:0;text-transform:none}
+textarea{padding:16px 17px;color:#d8dbe0;background:#14171b;font-size:12.5px;line-height:1.7;tab-size:2;caret-color:#e2b26f}
+textarea::selection{background:#b8864c55}
+#viewStoryboard,#viewViewer{height:100%;overflow:auto;border:1px solid #292e35;border-radius:13px;background:#171a1f;padding:14px}
+#viewViewer{display:none}
+#viewViewer.active{display:flex;flex-direction:column;gap:12px}
+#viewStoryboard.active{display:block}
+.storyboard-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding-bottom:14px}
+.scene-card{border-radius:10px;background:#1c2025;border-color:#2c3138;box-shadow:none}
+.scene-header{padding:9px 11px;background:#20242a;color:#d9dce0;font-size:12px}
+.scene-badge{background:#30353c;color:#9aa2ac}
+.canvas-container{background-color:#121417;background-image:linear-gradient(45deg,#1c1e22 25%,transparent 25%),linear-gradient(-45deg,#1c1e22 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1c1e22 75%),linear-gradient(-45deg,transparent 75%,#1c1e22 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+.scene-footer{border-color:#2b3036;padding:8px 11px;color:#9299a2}
+.viewer-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0}
+.viewer-controls select{background:#22262b!important;border:1px solid #333941!important;color:#dce0e4!important}
+.viewer-canvas-wrapper{flex:1;min-height:240px;height:auto!important;border-radius:10px;border-color:#30353c;background-color:#121417;display:flex;justify-content:center;align-items:center}
+#liveCanvas{max-width:none;max-height:none;image-rendering:pixelated}
+.workspace-tools{padding:0}
+.tool-note{font-size:11px;color:#9199a3}
+#pixelInfo{margin-left:auto;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-ok{color:var(--ok)}.status-err{color:var(--bad)}
+@media(max-width:1050px){header{height:auto;padding:10px 14px;flex-wrap:wrap;gap:10px}.toolbar{flex-wrap:wrap}main{grid-template-columns:minmax(300px,40%) minmax(0,1fr)}}
+@media(max-width:760px){body{height:auto;min-height:100vh;overflow:auto}main{display:flex;flex-direction:column;overflow:visible;min-height:calc(100vh - 100px)}.pane{min-height:560px;overflow:visible}#viewStoryboard,#viewViewer{height:auto;min-height:500px}.viewer-canvas-wrapper{min-height:430px;height:65vh!important}header{align-items:center}.toolbar{width:100%;justify-content:flex-start;overflow-x:auto}#pixelInfo{margin-left:0}}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Pixel Brush Studio</h1>
+  <h1>Pixel Brush</h1>
   <div class="toolbar">
     <div class="tabs">
       <button class="tab active" data-target="viewStoryboard">Storyboard</button>
@@ -126,8 +170,8 @@ header{gap:16px;padding:10px 16px;flex-wrap:wrap}header h1{font-size:15px}.toolb
   <div class="pane">
     <div class="card">
       <div class="card-header">
-        <span>Source Code</span>
-        <span id="renderSummary">Ready · scenes separated by blank lines</span>
+        <span>Artwork Script</span>
+        <span id="renderSummary">Autosave enabled · blank line separates scenes</span>
       </div>
       <textarea id="src" spellcheck="false"></textarea>
     </div>
@@ -138,7 +182,7 @@ header{gap:16px;padding:10px 16px;flex-wrap:wrap}header h1{font-size:15px}.toolb
     <!-- Tab 1: Storyboard -->
     <div id="viewStoryboard" class="active">
       <div class="storyboard-grid" id="boardGrid">
-        <div class="empty-state">Click "Render All" to generate the storyboard.</div>
+        <div class="empty-state">Your rendered scenes will appear here.</div>
       </div>
     </div>
 
