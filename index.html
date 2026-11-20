@@ -92,16 +92,13 @@
   .viewer-controls { display: flex; gap: 10px; margin-bottom: 12px; }
   .viewer-canvas-wrapper {
     background: #000; border: 1px solid var(--border); border-radius: 10px;
-    display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; overflow: hidden;
+    display: flex; justify-content: center; align-items: center; width: 100%; height: calc(100% - 50px); overflow: hidden;
   }
   #liveCanvas { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
   
   .status-ok { color: var(--ok); font-weight: bold; }
   .status-err { color: var(--bad); font-weight: bold; }
   .empty-state { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--mut); }
-  
-  /* Utilities */
-  .hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -291,330 +288,38 @@ const liveCanvas = document.getElementById('liveCanvas');
 const sceneSelect = document.getElementById('sceneSelect');
 const btnPlay = document.getElementById('btnPlay');
 
-const demoText = `# ═══ SCENE 1: The Long Approach ═══
-# A lone keeper walks the jetty toward the lighthouse at last light.
-seed 11
+const demoText = `# ═══ SCENE 1: The Parched Land ═══
+# A brutal, blinding midday sun. The crow rests on a dead branch, exhausted.
+# Focal: the glaring sun top-right. Planes: blazing sky / cracked earth / dead tree.
+seed 201
 SIZE 256 256
 PALETTE
- sky0 #1A2238  sky1 #4A3B52  sky2 #8A5A52  sky3 #C97B4A
- sunc #FFD9A0  dim  #6A3A18
- sea0 #14202E  sea1 #1E3044  sea2 #2E4A5E  foam #6A8896
- jet0 #0E1418  jet1 #1A242A  jet2 #2A3640
- lamp #FFE8B0  ink #06090C  fig #0A1016
-paint in 0 0 256 150 with ramp(clamp(y*0.0067,0,1),sky0,sky1,sky2,sky3)
-paint in 150 60 100 100 where dist(x,y,196,96)<70 with dim a=(1-dist(x,y,196,96)*0.014)^2 blend=add
-paint in 180 80 32 32 where dist(x,y,196,96)<14 with mix(sunc,sky3,dist(x,y,196,96)*0.07)
-paint in 0 140 256 116 with ramp(clamp((y-140)*0.009,0,1),sea2,sea1,sea0)
-line 196 96 198 140 ink w=10
-line 194 98 196 138 mix(sea2,sky3,0.3) w=6
-plot 196 90 lamp r=3
-paint in 0 200 256 56 with jet1
-line 78 214 74 232 ink w=6
-line 78 214 74 232 fig w=3
-line 86 214 90 232 ink w=6
-line 86 214 90 232 fig w=3
-line 80 190 82 214 ink w=10
-line 80 190 82 214 fig w=6
-plot 80 182 fig r=4
+ sky0 #4A5B6C  sky1 #8A9CAC  sky2 #C8C4B0  sky3 #F8E8C0
+ sunc #FFFFFF  dim  #FFC880
+ earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  crack #1A0E08
+ tree0 #0A0604  tree1 #1A120C
+ crow0 #0A0C10  crow1 #1A1E24  beak #3A3A40
+# ---- blazing sky -------------------------------------------------------
+paint in 0 0 256 160 with ramp(clamp(y*0.006,0,1),sky0,sky1,sky2,sky3)
+paint in 140 10 100 100 where dist(x,y,190,40)<60 with dim a=(1-dist(x,y,190,40)*0.016)^2 blend=add
+paint in 160 20 60 60 where dist(x,y,190,40)<25 with sunc
+# ---- cracked earth -----------------------------------------------------
+paint in 0 160 256 96 with ramp(clamp((y-160)*0.01,0,1),earth2,earth1,earth0)
+paint in 0 160 256 96 where noise(x*0.05,y*0.1)>0.6 with crack a=0.6
+# ---- dead tree ---------------------------------------------------------
+line 60 160 50 220 tree0 w=12
+line 60 160 40 180 tree0 w=8
+line 50 180 70 170 tree0 w=6
+line 50 210 30 230 tree0 w=6
+# ---- exhausted crow ----------------------------------------------------
+line 55 145 65 155 crow1 w=10
+line 55 145 65 155 crow0 w=6
+plot 50 140 crow0 r=5
+plot 45 142 beak r=2
+line 60 150 75 160 crow0 w=4
+# ---- heat haze ---------------------------------------------------------
+paint in 0 140 256 60 with mix(earth1,sky2,0.4) a=0.3
 
-# ═══ SCENE 2: The Lamp Room ═══
-# Inside the lamp room. The keeper winds the clockwork before dawn.
-seed 22
-SIZE 256 256
-PALETTE
- room0 #0A0C10  room1 #12181E  room2 #1C2630
- win0 #0A1420   win1 #16283A
- brass0 #4A3218  brass1 #8A5A2A  brass2 #C89050  brass3 #F0C878
- glass #F4E4B0  dim #6A3A18  ink #05070A
- skin0 #6A4A38  skin1 #A87858  skin2 #D8A878  acc #C84030
-paint in 0 0 256 256 with ramp(clamp(y*0.004,0,1),room0,room1,room2)
-paint in 30 70 90 90 where dist(x,y,72,108)<44 with dim a=(1-dist(x,y,72,108)*0.022)^2 blend=add
-paint in 40 76 64 64 where dist(x,y,72,108)<30 with mix(glass,brass3,dist(x,y,72,108)*0.03)
-paint in 40 76 64 64 where abs(dist(x,y,72,108)-22)<3 with brass2
-line 120 140 122 190 ink w=14
-line 120 140 122 190 skin1 w=10
-line 118 150 150 162 ink w=8
-line 118 150 150 162 skin1 w=5
-plot 152 162 brass3 r=4
-line 114 165 128 167 acc w=4
-plot 120 130 skin1 r=6
-
-# ═══ SCENE 3: The Storm Arrives ═══
-# The gale hits. Keeper stands at the cliff rail, beam sweeping overhead.
-seed 33
-SIZE 256 256
-PALETTE
- sky0 #06080C  sky1 #0C1218  sky2 #141E28
- beam0 #2A3A48  beam1 #6A8AA0  beam2 #C8E0E8
- sea0 #080E14  sea1 #101A24  sea2 #1A2A36  foam #4A6A7A
- cliff0 #0A0E12  cliff1 #161E24  cliff2 #242E36
- ink #04060A  fig #080C10  acc #8A2A1A  rail #3A2A1A
-paint in 0 0 256 140 with ramp(clamp(y*0.007,0,1),sky0,sky1,sky2)
-paint in 100 0 156 160 where x>100 and y<150 and x>180-y*1.1 and x<230-y*0.4 with beam0 a=0.5 blend=add
-paint in 0 140 256 116 with ramp(clamp((y-140)*0.01,0,1),sea2,sea1,sea0)
-for i in 0..40
-  line i*6 (i*13)%200 i*6-6 (i*13)%200+18 beam0 w=1 a=0.4
-end
-paint in 0 190 256 66 with cliff1
-line 20 190 230 190 rail w=2
-line 90 190 90 215 ink w=6
-line 90 190 90 215 fig w=3
-line 92 160 94 190 ink w=12
-line 92 160 94 190 fig w=8
-plot 94 150 fig r=5
-line 90 172 108 170 acc w=4
-
-# ═══ SCENE 4: The Dark Hour ═══
-# The lamp is out. First grey light. Keeper looks up at the cold glass.
-seed 44
-SIZE 256 256
-PALETTE
- sky0 #1E2630  sky1 #3A4450  sky2 #6A6A72  sky3 #A89888
- dawn #C8A878  dim #4A3A28
- sea0 #141C24  sea1 #1E2A34  sea2 #2E3E4A  foam #5A6E7A
- tower0 #1A2026  tower1 #2A343C  tower2 #3E4A54
- dead #0C1014  glass #3A4A56  ink #06080A  fig #0A0E12  acc #6A3A2A
-paint in 0 0 256 150 with ramp(clamp(y*0.0067,0,1),sky0,sky1,sky2,sky3)
-paint in 0 150 256 106 with ramp(clamp((y-150)*0.009,0,1),sea2,sea1,sea0)
-line 78 140 80 196 ink w=18
-line 78 140 80 196 tower1 w=12
-paint in 62 118 40 40 where dist(x,y,80,132)<16 with ramp(clamp((y-118)*0.03,0,1),dead,glass)
-paint in 0 190 256 66 with sea1
-line 30 190 230 190 tower0 w=2
-line 130 155 132 190 ink w=12
-line 130 155 132 190 fig w=8
-plot 132 145 fig r=5
-line 120 170 140 168 acc w=4
-
-# ═══ SCENE 5: First Light ═══
-# Dawn breaks. The keeper turns from the dead lamp to the rising sun.
-seed 55
-SIZE 256 256
-PALETTE
- sky0 #2A2A48  sky1 #6A4A5A  sky2 #B8704A  sky3 #E8A860  sky4 #F8D890
- sunc #FFF0C0  dim #7A4418
- sea0 #1A2430  sea1 #2A3A48  sea2 #4A5A68  glitter #E8D0A0
- tower0 #1A2026  tower1 #2A343C
- ink #06080A  fig #0C1016  skin0 #6A4A38  skin1 #B07850  skin2 #E0A870
- acc #C84030  rail #4A3420
-paint in 0 0 256 160 with ramp(clamp(y*0.0063,0,1),sky0,sky1,sky2,sky3,sky4)
-paint in 160 80 96 96 where dist(x,y,208,128)<60 with dim a=(1-dist(x,y,208,128)*0.0166)^2 blend=add
-paint in 186 106 44 44 where dist(x,y,208,128)<22 with mix(sunc,sky4,dist(x,y,208,128)*0.045)
-paint in 0 160 256 96 with ramp(clamp((y-160)*0.01,0,1),sea2,sea1,sea0)
-line 60 130 62 200 ink w=14
-line 60 130 62 200 tower1 w=10
-paint in 0 190 256 66 with sea1
-line 20 190 230 190 rail w=2
-line 118 155 120 190 ink w=14
-line 118 155 120 190 fig w=10
-plot 118 145 fig r=6
-line 110 165 128 163 acc w=4`;
-
-src.value = demoText;
-
-let cachedScenes = [];
-
-// UI Tab Switching
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', (e) => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('#viewStoryboard, #viewViewer').forEach(v => v.classList.remove('active'));
-    e.target.classList.add('active');
-    document.getElementById(e.target.dataset.target).classList.add('active');
-  });
-});
-
-// Render logic
-function renderAll() {
-  const text = src.value;
-  const scenes = text.split(/\n\s*\n/).filter(s => s.trim().length > 0 && s.includes('SIZE'));
-  
-  board.innerHTML = '';
-  sceneSelect.innerHTML = '';
-  cachedScenes = [];
-  
-  if (scenes.length === 0) {
-    board.innerHTML = '<div class="empty-state">No scenes found. Make sure your code contains "SIZE" and is separated by blank lines.</div>';
-    btnZip.disabled = true;
-    btnSheet.disabled = true;
-    return;
-  }
-
-  btnRender.textContent = '⏳ Rendering...';
-  btnRender.disabled = true;
-
-  scenes.forEach((sceneCode, index) => {
-    let title = `Scene ${index + 1}`;
-    const titleMatch = sceneCode.match(/#\s*(?:═══)?\s*(.+?)\s*(?:═══)?$/m);
-    if (titleMatch && titleMatch[1]) title = titleMatch[1].trim();
-
-    // Add to dropdown
-    const opt = document.createElement('option');
-    opt.value = index;
-    opt.textContent = title;
-    sceneSelect.appendChild(opt);
-
-    // Create Card
-    const card = document.createElement('div');
-    card.className = 'scene-card';
-    
-    const header = document.createElement('div');
-    header.className = 'scene-header';
-    header.innerHTML = `<span>${title}</span><span class="scene-badge">#${index + 1}</span>`;
-    
-    const canvasContainer = document.createElement('div');
-    canvasContainer.className = 'canvas-container';
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 256;
-    
-    const footer = document.createElement('div');
-    footer.className = 'scene-footer';
-    footer.innerHTML = `<span class="status-text">Rendering...</span><span class="meta-text"></span>`;
-    
-    canvasContainer.appendChild(canvas);
-    card.appendChild(header);
-    card.appendChild(canvasContainer);
-    card.appendChild(footer);
-    board.appendChild(card);
-    
-    // Render asynchronously to not block UI
-    setTimeout(() => {
-      try {
-        const result = run(sceneCode);
-        canvas.width = result.W;
-        canvas.height = result.H;
-        const ctx = canvas.getContext('2d');
-        const id = ctx.createImageData(result.W, result.H);
-        
-        for (let i = 0; i < result.W * result.H; i++) {
-          id.data.set([result.img[i*3], result.img[i*3+1], result.img[i*3+2], 255], i * 4);
-        }
-        ctx.putImageData(id, 0, 0);
-        
-        const status = footer.querySelector('.status-text');
-        const meta = footer.querySelector('.meta-text');
-        
-        if (result.ERR.length > 0) {
-          status.innerHTML = `<span class="status-err">${result.ERR.length} errors</span>`;
-          meta.textContent = result.ERR[0].substring(0, 30) + '...';
-        } else {
-          status.innerHTML = `<span class="status-ok">Success</span>`;
-          meta.textContent = `${result.W}x${result.H}`;
-        }
-        
-        // Store for export
-        cachedScenes.push({ title, canvas: canvas.toDataURL('image/png') });
-        
-        if (cachedScenes.length === scenes.length) {
-          btnRender.textContent = '▶ Render All';
-          btnRender.disabled = false;
-          btnZip.disabled = false;
-          btnSheet.disabled = false;
-          // Auto-render the first scene in live viewer
-          sceneSelect.dispatchEvent(new Event('change'));
-        }
-
-      } catch (e) {
-        footer.querySelector('.status-text').innerHTML = `<span class="status-err">Crash</span>`;
-        footer.querySelector('.meta-text').textContent = e.message;
-      }
-    }, 10 * index);
-  });
-}
-
-// Live Viewer logic
-sceneSelect.addEventListener('change', (e) => {
-  const idx = parseInt(e.target.value);
-  const sceneCode = src.value.split(/\n\s*\n/).filter(s => s.trim().length > 0 && s.includes('SIZE'))[idx];
-  if(!sceneCode) return;
-
-  const result = run(sceneCode);
-  liveCanvas.width = result.W;
-  liveCanvas.height = result.H;
-  const ctx = liveCanvas.getContext('2d');
-  const id = ctx.createImageData(result.W, result.H);
-  for (let i = 0; i < result.W * result.H; i++) {
-    id.data.set([result.img[i*3], result.img[i*3+1], result.img[i*3+2], 255], i * 4);
-  }
-  ctx.putImageData(id, 0, 0);
-});
-
-btnPlay.addEventListener('click', () => {
-  sceneSelect.dispatchEvent(new Event('change'));
-});
-
-// Export Logic
-btnZip.addEventListener('click', async () => {
-  if (cachedScenes.length === 0) return;
-  btnZip.textContent = '⏳ Zipping...';
-  
-  const zip = new JSZip();
-  for (let i = 0; i < cachedScenes.length; i++) {
-    const scene = cachedScenes[i];
-    const base64Data = scene.canvas.split(',')[1];
-    const safeName = scene.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    zip.file(`scene_${i+1}_${safeName}.png`, base64Data, {base64: true});
-  }
-  
-  const content = await zip.generateAsync({type: "blob"});
-  const url = URL.createObjectURL(content);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'pixel_brush_storyboard.zip';
-  a.click();
-  URL.revokeObjectURL(url);
-  
-  btnZip.textContent = '📦 Download ZIP';
-});
-
-btnSheet.addEventListener('click', () => {
-  if (cachedScenes.length === 0) return;
-  
-  // Create a massive canvas to stitch them together (max 3 per row)
-  const cols = 3;
-  const rows = Math.ceil(cachedScenes.length / cols);
-  const cellW = 256;
-  const cellH = 256;
-  const padding = 20;
-  
-  const sheet = document.createElement('canvas');
-  sheet.width = cols * cellW + (cols + 1) * padding;
-  sheet.height = rows * cellH + (rows + 1) * padding;
-  const ctx = sheet.getContext('2d');
-  
-  // Fill background
-  ctx.fillStyle = '#181a20';
-  ctx.fillRect(0, 0, sheet.width, sheet.height);
-  
-  let loaded = 0;
-  cachedScenes.forEach((scene, i) => {
-    const img = new Image();
-    img.onload = () => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = padding + col * (cellW + padding);
-      const y = padding + row * (cellH + padding);
-      ctx.drawImage(img, x, y, cellW, cellH);
-      
-      loaded++;
-      if (loaded === cachedScenes.length) {
-        const url = sheet.toDataURL('image/png');
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'storyboard_sheet.png';
-        a.click();
-      }
-    };
-    img.src = scene.canvas;
-  });
-});
-
-btnRender.addEventListener('click', renderAll);
-
-// Auto render on load
-window.addEventListener('DOMContentLoaded', () => {
-  setTimeout(renderAll, 100);
-});
-</script>
-</body>
-</html>
+# ═══ SCENE 2: The Long Search ═══
+# The crow flies high and low, scanning the barren ground for any sign of water.
+# Focal: the crow mid-flight. Planes: vast empty sky / dry plains below.
