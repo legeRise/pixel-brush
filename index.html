@@ -323,3 +323,428 @@ paint in 0 140 256 60 with mix(earth1,sky2,0.4) a=0.3
 # ═══ SCENE 2: The Long Search ═══
 # The crow flies high and low, scanning the barren ground for any sign of water.
 # Focal: the crow mid-flight. Planes: vast empty sky / dry plains below.
+seed 202
+SIZE 256 256
+PALETTE
+ sky0 #3A5B6C  sky1 #7A9CAC  sky2 #B8C4C8  sky3 #E8D8B0
+ sunc #FFF4D0  dim  #8A5A3A
+ earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
+ crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  beak #3A3A40
+# ---- sky ---------------------------------------------------------------
+paint in 0 0 256 180 with ramp(clamp(y*0.0055,0,1),sky0,sky1,sky2,sky3)
+# ---- dry plains --------------------------------------------------------
+paint in 0 180 256 76 with ramp(clamp((y-180)*0.013,0,1),dry,earth2,earth1)
+paint in 0 180 256 76 where noise(x*0.03,y*0.03)>0.55 with earth0 a=0.3 dither
+# ---- flying crow -------------------------------------------------------
+line 110 80 140 90 crow1 w=12
+line 110 80 140 90 crow0 w=8
+line 120 82 105 65 crow0 w=6  # wing up
+line 130 86 145 105 crow0 w=6 # wing down
+plot 105 80 crow0 r=5
+plot 100 82 beak r=2
+line 115 85 100 95 crow0 w=4
+# ---- dry riverbed below ------------------------------------------------
+paint in 60 210 140 20 with earth0 a=0.5
+paint in 60 210 140 20 where noise(x*0.2,y*0.2)>0.6 with dry a=0.5
+
+# ═══ SCENE 3: The Discovery ═══
+# The crow spots a glint of light reflecting off a tall, narrow pitcher.
+# Focal: the pitcher, bottom-left. Planes: bright sky / dark ground / bright water glint.
+seed 203
+SIZE 256 256
+PALETTE
+ sky0 #4A6B7C  sky1 #8AACBC  sky2 #D8E4E8  sky3 #F8E8C0
+ sunc #FFF4D0  dim  #8A5A3A
+ earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
+ pit0 #2A1A10  pit1 #4A2A18  pit2 #6A3A20  glint #FFFFFF
+ crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  beak #3A3A40
+# ---- sky & ground ------------------------------------------------------
+paint in 0 0 256 150 with ramp(clamp(y*0.006,0,1),sky0,sky1,sky2,sky3)
+paint in 0 150 256 106 with ramp(clamp((y-150)*0.01,0,1),dry,earth2,earth1)
+# ---- the pitcher -------------------------------------------------------
+paint in 50 160 40 70 with mix(pit1,pit2,clamp((x-50)*0.05,0,1))
+paint in 40 160 60 8 with pit0
+# ---- glint of water ----------------------------------------------------
+plot 65 165 glint r=3
+plot 70 168 glint r=1
+plot 60 167 glint r=1
+# ---- crow circling above -----------------------------------------------
+line 160 100 180 120 crow1 w=8
+line 160 100 180 120 crow0 w=4
+plot 155 100 crow0 r=4
+plot 150 102 beak r=2
+line 170 110 185 105 crow0 w=3
+
+# ═══ SCENE 4: The Disappointment ═══
+# The crow lands and looks down. The water is impossibly low.
+# Focal: the deep dark interior of the pitcher. Planes: pitcher rim / deep shadow.
+seed 204
+SIZE 256 256
+PALETTE
+ sky0 #2A4B5C  sky1 #6A8C9C  sky2 #B8C4C8  sky3 #E8D8B0
+ earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
+ pit0 #0A0604  pit1 #1A0E08  pit2 #2A1A10  water #2A4A5C  glint #6A9CAC
+ crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  beak #3A3A40  eye #FFFFFF
+# ---- background --------------------------------------------------------
+paint in 0 0 256 160 with ramp(clamp(y*0.005,0,1),sky0,sky1,sky2,sky3)
+paint in 0 160 256 96 with ramp(clamp((y-160)*0.01,0,1),dry,earth2,earth1)
+# ---- giant pitcher (zoomed in) -----------------------------------------
+paint in 80 100 100 140 with mix(pit1,pit2,clamp((x-80)*0.02,0,1))
+paint in 70 100 120 15 with pit0
+paint in 85 115 90 120 with pit0
+# ---- very low water ----------------------------------------------------
+paint in 85 200 90 30 with water
+plot 120 205 glint r=1
+# ---- crow on the rim ---------------------------------------------------
+line 110 85 130 100 crow1 w=12
+line 110 85 130 100 crow0 w=8
+plot 105 80 crow0 r=5
+plot 100 82 beak r=2
+plot 102 78 eye r=1
+line 115 90 100 95 crow0 w=4
+# ---- looking down (sad posture) ----------------------------------------
+line 130 100 140 120 crow0 w=4
+
+# ═══ SCENE 5: The Realization ═══
+# The crow looks at the ground. A small pebble catches its eye.
+# Focal: the pebble in the foreground. Planes: crow / pebble.
+seed 205
+SIZE 256 256
+PALETTE
+ sky0 #2A4B5C  sky1 #6A8C9C  sky2 #B8C4C8  sky3 #E8D8B0
+ earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
+ pit0 #0A0604  pit1 #1A0E08  pit2 #2A1A10  water #2A4A5C  glint #6A9CAC
+ crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  beak #3A3A40  eye #FFFFFF  peb #4A4A50
+# ---- background --------------------------------------------------------
+paint in 0 0 256 160 with ramp(clamp(y*0.005,0,1),sky0,sky1,sky2,sky3)
+paint in 0 160 256 96 with ramp(clamp((y-160)*0.01,0,1),dry,earth2,earth1)
+# ---- pitcher -----------------------------------------------------------
+paint in 160 100 60 80 with mix(pit1,pit2,clamp((x-160)*0.03,0,1))
+paint in 150 100 80 10 with pit0
+# ---- crow looking down ------------------------------------------------
+line 100 140 120 180 crow1 w=14
+line 100 140 120 180 crow0 w=10
+line 110 150 115 130 crow0 w=8
+plot 95 135 crow0 r=6
+plot 90 137 beak r=2
+plot 92 133 eye r=1
+line 120 160 130 180 crow0 w=4
+# ---- foreground pebble -------------------------------------------------
+plot 70 220 peb r=4
+plot 68 218 peb r=2
+plot 73 221 peb r=1
+# ---- sparkle of thought ------------------------------------------------
+plot 75 210 #FFFFFF r=1
+plot 80 205 #FFFFFF r=1
+
+# ═══ SCENE 6: The Clever Plan ═══
+# The crow picks up the pebble in its beak and flies to the pitcher.
+# Focal: the pebble in the beak. Planes: flight path.
+seed 206
+SIZE 256 256
+PALETTE
+ sky0 #3A5B6C  sky1 #7A9CAC  sky2 #C8D4D8  sky3 #F8E8C0
+ earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
+ pit0 #0A0604  pit1 #1A0E08  pit2 #2A1A10  water #2A4A5C  glint #6A9CAC
+ crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  peb #4A4A50
+# ---- background --------------------------------------------------------
+paint in 0 0 256 150 with ramp(clamp(y*0.006,0,1),sky0,sky1,sky2,sky3)
+paint in 0 150 256 106 with ramp(clamp((y-150)*0.01,0,1),dry,earth2,earth1)
+# ---- pitcher -----------------------------------------------------------
+paint in 180 160 50 80 with mix(pit1,pit2,clamp((x-180)*0.04,0,1))
+paint in 170 160 70 8 with pit0
+# ---- crow flying with pebble -------------------------------------------
+line 80 100 110 110 crow1 w=12
+line 80 100 110 110 crow0 w=8
+line 90 102 75 85 crow0 w=6
+line 100 106 115 125 crow0 w=6
+plot 75 100 crow0 r=5
+plot 70 102 peb r=2
+line 85 105 70 115 crow0 w=4
+# ---- trail of effort ---------------------------------------------------
+plot 120 115 #FFFFFF r=1 a=0.5
+plot 130 120 #FFFFFF r=1 a=0.3
+
+# ═══ SCENE 7: The Hard Work ═══
+# Drop by drop, pebble by pebble. The water slowly rises.
+# Focal: the pebbles splashing. Planes: repetitive effort.
+seed 207
+SIZE 256 256
+PALETTE
+ sky0 #2A4B5C  sky1 #6A8C9C  sky2 #B8C4C8  sky3 #E8D8B0
+ earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
+ pit0 #0A0604  pit1 #1A0E08  pit2 #2A1A10  water #4A8A9C  glint #C8F0F0
+ crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844  peb #6A6A72
+# ---- background --------------------------------------------------------
+paint in 0 0 256 140 with ramp(clamp(y*0.006,0,1),sky0,sky1,sky2,sky3)
+paint in 0 140 256 116 with ramp(clamp((y-140)*0.01,0,1),dry,earth2,earth1)
+# ---- pitcher with rising water -----------------------------------------
+paint in 90 120 80 110 with mix(pit1,pit2,clamp((x-90)*0.025,0,1))
+paint in 80 120 100 12 with pit0
+paint in 95 180 70 50 with water
+paint in 95 180 70 4 with glint a=0.8
+# ---- crow at work ------------------------------------------------------
+line 140 80 160 130 crow1 w=16
+line 140 80 160 130 crow0 w=12
+line 150 90 165 70 crow0 w=8
+plot 135 75 crow0 r=6
+plot 125 80 crow2 r=2
+# ---- pebbles falling ---------------------------------------------------
+plot 130 90 peb r=2
+plot 135 110 peb r=2
+plot 140 140 peb r=2
+plot 120 160 peb r=1
+plot 145 165 peb r=2
+plot 110 175 peb r=2
+plot 150 175 peb r=1
+plot 125 185 peb r=2
+# ---- splash effects ----------------------------------------------------
+plot 130 185 glint r=1
+plot 145 187 glint r=1
+
+# ═══ SCENE 8: The Reward ═══
+# The water is high enough. The crow drinks deeply and flies away.
+# Focal: the crow drinking with a golden sunset behind.
+seed 208
+SIZE 256 256
+PALETTE
+ sky0 #2A1A38  sky1 #6A3A5A  sky2 #B8704A  sky3 #F8D890
+ sunc #FFF4D0  dim  #8A5A3A
+ earth0 #2A1A10  earth1 #4A2A18  earth2 #6A3A20  dry #8A5A3A
+ pit0 #2A1A10  pit1 #4A2A18  pit2 #6A3A20  water #4A8A9C  glint #C8F0F0
+ crow0 #0A0C10  crow1 #1A1E24  crow2 #2E3844
+# ---- golden sunset sky -------------------------------------------------
+paint in 0 0 256 170 with ramp(clamp(y*0.005,0,1),sky0,sky1,sky2,sky3)
+paint in 150 40 100 100 where dist(x,y,190,80)<80 with dim a=(1-dist(x,y,190,80)*0.0125)^2 blend=add
+paint in 170 60 40 40 where dist(x,y,190,80)<20 with sunc
+# ---- ground ------------------------------------------------------------
+paint in 0 170 256 86 with ramp(clamp((y-170)*0.01,0,1),dry,earth2,earth1)
+# ---- pitcher full to the brim ------------------------------------------
+paint in 100 130 70 110 with mix(pit1,pit2,clamp((x-100)*0.03,0,1))
+paint in 90 130 90 10 with pit0
+paint in 95 140 80 40 with water
+paint in 95 140 80 3 with glint a=0.9
+# ---- crow drinking -----------------------------------------------------
+line 60 120 90 170 crow1 w=14
+line 60 120 90 170 crow0 w=10
+line 70 130 75 110 crow0 w=8
+plot 55 115 crow0 r=6
+# ---- beak dipping into water -------------------------------------------
+line 58 120 105 145 crow2 w=3
+plot 105 145 glint r=1
+# ---- reflection in water -----------------------------------------------
+paint in 95 145 80 30 with crow1 a=0.2
+paint in 95 145 80 30 where noise(x*0.1,y*0.1)>0.5 with glint a=0.3 dither
+# ---- final rays --------------------------------------------------------
+line 190 80 256 40 sunc w=1 a=0.3
+line 190 80 256 60 sunc w=1 a=0.3
+line 190 80 256 100 sunc w=1 a=0.3`;
+
+src.value = demoText;
+
+let cachedScenes = [];
+
+// UI Tab Switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', (e) => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#viewStoryboard, #viewViewer').forEach(v => v.classList.remove('active'));
+    e.target.classList.add('active');
+    document.getElementById(e.target.dataset.target).classList.add('active');
+  });
+});
+
+// Render logic
+function renderAll() {
+  const text = src.value;
+  const scenes = text.split(/\n\s*\n/).filter(s => s.trim().length > 0 && s.includes('SIZE'));
+  
+  board.innerHTML = '';
+  sceneSelect.innerHTML = '';
+  cachedScenes = [];
+  
+  if (scenes.length === 0) {
+    board.innerHTML = '<div class="empty-state">No scenes found. Make sure your code contains "SIZE" and is separated by blank lines.</div>';
+    btnZip.disabled = true;
+    btnSheet.disabled = true;
+    return;
+  }
+
+  btnRender.textContent = '⏳ Rendering...';
+  btnRender.disabled = true;
+
+  scenes.forEach((sceneCode, index) => {
+    let title = `Scene ${index + 1}`;
+    const titleMatch = sceneCode.match(/#\s*(?:═══)?\s*(.+?)\s*(?:═══)?$/m);
+    if (titleMatch && titleMatch[1]) title = titleMatch[1].trim();
+
+    // Add to dropdown
+    const opt = document.createElement('option');
+    opt.value = index;
+    opt.textContent = title;
+    sceneSelect.appendChild(opt);
+
+    // Create Card
+    const card = document.createElement('div');
+    card.className = 'scene-card';
+    
+    const header = document.createElement('div');
+    header.className = 'scene-header';
+    header.innerHTML = `<span>${title}</span><span class="scene-badge">#${index + 1}</span>`;
+    
+    const canvasContainer = document.createElement('div');
+    canvasContainer.className = 'canvas-container';
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256;
+    
+    const footer = document.createElement('div');
+    footer.className = 'scene-footer';
+    footer.innerHTML = `<span class="status-text">Rendering...</span><span class="meta-text"></span>`;
+    
+    canvasContainer.appendChild(canvas);
+    card.appendChild(header);
+    card.appendChild(canvasContainer);
+    card.appendChild(footer);
+    board.appendChild(card);
+    
+    // Render asynchronously to not block UI
+    setTimeout(() => {
+      try {
+        const result = run(sceneCode);
+        canvas.width = result.W;
+        canvas.height = result.H;
+        const ctx = canvas.getContext('2d');
+        const id = ctx.createImageData(result.W, result.H);
+        
+        for (let i = 0; i < result.W * result.H; i++) {
+          id.data.set([result.img[i*3], result.img[i*3+1], result.img[i*3+2], 255], i * 4);
+        }
+        ctx.putImageData(id, 0, 0);
+        
+        const status = footer.querySelector('.status-text');
+        const meta = footer.querySelector('.meta-text');
+        
+        if (result.ERR.length > 0) {
+          status.innerHTML = `<span class="status-err">${result.ERR.length} errors</span>`;
+          meta.textContent = result.ERR[0].substring(0, 30) + '...';
+        } else {
+          status.innerHTML = `<span class="status-ok">Success</span>`;
+          meta.textContent = `${result.W}x${result.H}`;
+        }
+        
+        // Store for export
+        cachedScenes.push({ title, canvas: canvas.toDataURL('image/png') });
+        
+        if (cachedScenes.length === scenes.length) {
+          btnRender.textContent = '▶ Render All';
+          btnRender.disabled = false;
+          btnZip.disabled = false;
+          btnSheet.disabled = false;
+          // Auto-render the first scene in live viewer
+          sceneSelect.dispatchEvent(new Event('change'));
+        }
+
+      } catch (e) {
+        footer.querySelector('.status-text').innerHTML = `<span class="status-err">Crash</span>`;
+        footer.querySelector('.meta-text').textContent = e.message;
+      }
+    }, 10 * index);
+  });
+}
+
+// Live Viewer logic
+sceneSelect.addEventListener('change', (e) => {
+  const idx = parseInt(e.target.value);
+  const sceneCode = src.value.split(/\n\s*\n/).filter(s => s.trim().length > 0 && s.includes('SIZE'))[idx];
+  if(!sceneCode) return;
+
+  const result = run(sceneCode);
+  liveCanvas.width = result.W;
+  liveCanvas.height = result.H;
+  const ctx = liveCanvas.getContext('2d');
+  const id = ctx.createImageData(result.W, result.H);
+  for (let i = 0; i < result.W * result.H; i++) {
+    id.data.set([result.img[i*3], result.img[i*3+1], result.img[i*3+2], 255], i * 4);
+  }
+  ctx.putImageData(id, 0, 0);
+});
+
+btnPlay.addEventListener('click', () => {
+  sceneSelect.dispatchEvent(new Event('change'));
+});
+
+// Export Logic
+btnZip.addEventListener('click', async () => {
+  if (cachedScenes.length === 0) return;
+  btnZip.textContent = '⏳ Zipping...';
+  
+  const zip = new JSZip();
+  for (let i = 0; i < cachedScenes.length; i++) {
+    const scene = cachedScenes[i];
+    const base64Data = scene.canvas.split(',')[1];
+    const safeName = scene.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    zip.file(`scene_${i+1}_${safeName}.png`, base64Data, {base64: true});
+  }
+  
+  const content = await zip.generateAsync({type: "blob"});
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pixel_brush_storyboard.zip';
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  btnZip.textContent = '📦 Download ZIP';
+});
+
+btnSheet.addEventListener('click', () => {
+  if (cachedScenes.length === 0) return;
+  
+  // Create a massive canvas to stitch them together (max 3 per row)
+  const cols = 3;
+  const rows = Math.ceil(cachedScenes.length / cols);
+  const cellW = 256;
+  const cellH = 256;
+  const padding = 20;
+  
+  const sheet = document.createElement('canvas');
+  sheet.width = cols * cellW + (cols + 1) * padding;
+  sheet.height = rows * cellH + (rows + 1) * padding;
+  const ctx = sheet.getContext('2d');
+  
+  // Fill background
+  ctx.fillStyle = '#181a20';
+  ctx.fillRect(0, 0, sheet.width, sheet.height);
+  
+  let loaded = 0;
+  cachedScenes.forEach((scene, i) => {
+    const img = new Image();
+    img.onload = () => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = padding + col * (cellW + padding);
+      const y = padding + row * (cellH + padding);
+      ctx.drawImage(img, x, y, cellW, cellH);
+      
+      loaded++;
+      if (loaded === cachedScenes.length) {
+        const url = sheet.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'storyboard_sheet.png';
+        a.click();
+      }
+    };
+    img.src = scene.canvas;
+  });
+});
+
+btnRender.addEventListener('click', renderAll);
+
+// Auto render on load
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(renderAll, 100);
+});
+</script>
+</body>
+</html>
